@@ -72,12 +72,12 @@ const SUBSCRIBER_NAV: NavItem[] = [
   { id: "news", label: "News & Filings", icon: Newspaper },
   { id: "ai-analyst", label: "AI Analyst", icon: Bot },
   { id: "watchlist", label: "Portfolio / Watchlist", icon: Star },
-  { id: "journal", label: "Trading Journal", badge: "P8", icon: BookOpen },
-  { id: "performance", label: "Historical Performance", badge: "P8", icon: BarChart3 },
+  { id: "journal", label: "Trading Journal", icon: BookOpen },
+  { id: "performance", label: "Historical Performance", icon: BarChart3 },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "subscription", label: "Subscription & Billing", badge: "P9", icon: CreditCard },
   { id: "settings", label: "Account Settings", icon: Settings },
-  { id: "admin", label: "Super Admin Panel", badge: "P8", adminOnly: true, icon: ShieldAlert },
+  { id: "admin", label: "Super Admin Panel", adminOnly: true, icon: ShieldAlert },
 ];
 
 interface AppShellProps {

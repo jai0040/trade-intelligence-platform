@@ -120,16 +120,20 @@ Before starting Phase 3 foundation builds, verify or install the following local
 
 ---
 
-### PHASE 8: Performance Analytics, Trading Journal & Super Admin — `PENDING`
-- [ ] Build Personal Trading Journal (user-isolated trade logs, notes, linked signals, personal P&L tracking).
-- [ ] Build Historical Performance Analytics page (win/loss/expired breakdown, R-multiple distribution, drawdown, net-of-cost/slippage methodology disclosures, immutable audit log viewer).
-- [ ] Build Super Admin Panel (`/admin`):
-  - User directory, activation/deactivation, active session viewer & instant revocation.
-  - Subscription & revenue dashboard, configurable subscription plans & grace periods.
-  - Market data provider health, API usage/cost monitor, Celery worker status, workflow & skill run logs, failed job retry inspector.
-  - Signal performance overview & audited **Global Emergency Kill Switch**.
+### PHASE 8: Performance Analytics, Trading Journal & Super Admin — `COMPLETED`
+- [x] Build Personal Trading Journal (`backend/app/journal/router.py`, `service.py`, `math.py`, `schemas.py`) with strictly `user_id`-isolated trade logs, trade entry, exit recording, automatic realized P&L calculation (BUY/SELL), psychology emotion tags, and performance analytics summary.
+- [x] Build Historical Performance Analytics view (`frontend/src/components/views/PerformanceView.tsx`) with win rate %, target/stop hits, net realized R, strategy distribution, and documented net-of-cost methodology disclosure (15 bps India / 8 bps US).
+- [x] Build Super Admin Panel (`backend/app/admin/router.py`, `schemas.py` + `frontend/src/components/views/SuperAdminView.tsx`):
+  - Platform KPIs overview (`GET /api/v1/admin/overview`: total users, active/inactive, subscription status counts, MRR in INR and USD, active concurrent sessions, kill-switch status).
+  - Multi-tenant User Directory (`GET /api/v1/admin/users`) with search, role filters, active session inspection, instant session revocation, and activation/deactivation toggles.
+  - Subscription Plan Configurator (`POST /api/v1/admin/plans`, Super Admin only, audited).
+  - Market data provider health telemetry and daily API calls.
+  - Workflow & DAG execution inspector with manual triggers (`POST /api/v1/admin/workflows/trigger`).
+  - Immutable Security & Admin Audit Log viewer (`GET /api/v1/admin/audit-logs`).
+  - Global Emergency Kill Switch control with audited reason confirmation.
+- [x] Add Phase 8 unit and integration tests (`tests/unit/test_phase8_journal_and_admin.py`, `tests/integration/test_phase8_admin_and_journal.py`) verifying journal CRUD, tenant isolation, P&L math, admin RBAC guards, and audit log generation.
 
-**Exit Criteria:** Admin RBAC isolation tests, audit-log completeness tests, and kill-switch end-to-end tests pass.
+**Exit Criteria:** All Phase 3–8 unit & integration tests verified. **Gate:** Ready for user approval to begin Phase 9.
 
 ---
 

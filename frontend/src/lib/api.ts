@@ -522,3 +522,286 @@ export const updateUserProfile = (patch: { full_name?: string; country_code?: st
     method: "PATCH",
     body: JSON.stringify(patch),
   });
+
+// --- Phase 8: Trading Journal Types & APIs ---
+export interface JournalEntry {
+  id: string;
+  user_id: string;
+  instrument_id: string;
+  market_id: string;
+  signal_id: string | null;
+  side: "BUY" | "SELL";
+  entry_price: string;
+  exit_price: string | null;
+  quantity: string;
+  planned_stop: string | null;
+  planned_target: string | null;
+  realized_pnl: string | null;
+  currency: "INR" | "USD";
+  emotions_tags: string[];
+  notes: string | null;
+  entered_at_utc: string;
+  exited_at_utc: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JournalStats {
+  total_trades: number;
+  open_trades: number;
+  closed_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  win_rate_pct: number;
+  total_realized_pnl_inr: string;
+  total_realized_pnl_usd: string;
+  profit_factor: number | null;
+  top_emotions: Record<string, number>;
+}
+
+export interface JournalListResponse {
+  total: number;
+  stats: JournalStats;
+  items: JournalEntry[];
+}
+
+export const fetchJournal = (params?: {
+  side?: string;
+  currency?: string;
+  limit?: number;
+  offset?: number;
+}) => {
+  const sp = new URLSearchParams();
+  if (params?.side) sp.set("side", params.side);
+  if (params?.currency) sp.set("currency", params.currency);
+  if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.offset) sp.set("offset", String(params.offset));
+  const query = sp.toString() ? `?${sp.toString()}` : "";
+  return apiFetch<JournalListResponse>(`/api/v1/journal${query}`);
+};
+
+export const createJournalEntry = (payload: {
+  instrument_id: string;
+  market_id: string;
+  signal_id?: string | null;
+  side: "BUY" | "SELL";
+  entry_price: string;
+  quantity: string;
+  currency: "INR" | "USD";
+  exit_price?: string | null;
+  planned_stop?: string | null;
+  planned_target?: string | null;
+  emotions_tags?: string[];
+  notes?: string | null;
+}) =>
+  apiFetch<JournalEntry>("/api/v1/journal", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const updateJournalEntry = (
+  journalId: string,
+  payload: {
+    exit_price?: string | null;
+    planned_stop?: string | null;
+    planned_target?: string | null;
+    emotions_tags?: string[];
+    notes?: string | null;
+    exited_at_utc?: string | null;
+  }
+) =>
+  apiFetch<JournalEntry>(`/api/v1/journal/${journalId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
+export const deleteJournalEntry = (journalId: string) =>
+  apiFetch<void>(`/api/v1/journal/${journalId}`, { method: "DELETE" });
+
+// --- Phase 8: Super Admin Types & APIs ---
+export interface AdminOverview {
+  total_users: number;
+  active_users: number;
+  inactive_users: number;
+  subscriptions_by_status: Record<string, number>;
+  mrr_inr: string;
+  mrr_usd: string;
+  active_sessions_count: number;
+  kill_switch: { enabled: boolean; source: string };
+  trading_mode: string;
+}
+
+export interface AdminUserItem {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  country_code: string;
+  is_active: boolean;
+  is_email_verified: boolean;
+  created_at: string;
+  last_login_at: string | null;
+  active_session?: {
+    id: string;
+    ip_address: string | null;
+    user_agent: string | null;
+    created_at: string;
+    last_seen_at: string;
+  } | null;
+  subscription?: {
+    id: string;
+    plan_code: string;
+    plan_name: string;
+    status: string;
+    currency: string;
+    current_period_end: string | null;
+  } | null;
+}
+
+export interface AdminUserListResponse {
+  total: number;
+  items: AdminUserItem[];
+}
+
+export interface AdminPlanItem {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  currency: string;
+  price_amount: string;
+  billing_interval: string;
+  grace_period_days: number;
+  entitled_markets: string[];
+  features: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AuditLogItem {
+  id: string;
+  actor_user_id: string | null;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  metadata: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
+}
+
+export interface WorkflowRunItem {
+  workflow_run_id: string;
+  workflow_type: string;
+  market_code: string;
+  status: string;
+  idempotency_key: string;
+  triggered_by: string;
+  started_at_utc: string;
+  finished_at_utc: string;
+  error_message: string | null;
+  skill_runs: Array<{
+    id: string;
+    skill_name: string;
+    status: string;
+    retry_count: number;
+    duration_ms: number;
+    error_trace: string | null;
+  }>;
+}
+
+export const fetchAdminOverview = () => apiFetch<AdminOverview>("/api/v1/admin/overview");
+
+export const fetchAdminUsers = (params?: {
+  search?: string;
+  role?: string;
+  is_active?: boolean;
+  limit?: number;
+  offset?: number;
+}) => {
+  const sp = new URLSearchParams();
+  if (params?.search) sp.set("search", params.search);
+  if (params?.role) sp.set("role", params.role);
+  if (params?.is_active !== undefined) sp.set("is_active", String(params.is_active));
+  if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.offset) sp.set("offset", String(params.offset));
+  const query = sp.toString() ? `?${sp.toString()}` : "";
+  return apiFetch<AdminUserListResponse>(`/api/v1/admin/users${query}`);
+};
+
+export const updateAdminUserStatus = (userId: string, is_active: boolean, reason?: string) =>
+  apiFetch<{ user_id: string; is_active: boolean; revoked_sessions_count: number }>(
+    `/api/v1/admin/users/${userId}/status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ is_active, reason: reason ?? "Admin update" }),
+    }
+  );
+
+export const revokeAdminUserSession = (userId: string, reason?: string) =>
+  apiFetch<{ user_id: string; revoked_sessions_count: number; message: string }>(
+    `/api/v1/admin/users/${userId}/revoke-session`,
+    {
+      method: "POST",
+      body: JSON.stringify({ reason: reason ?? "Session revoked by administrator" }),
+    }
+  );
+
+export const createAdminPlan = (payload: {
+  code: string;
+  name: string;
+  description?: string;
+  currency: "INR" | "USD";
+  price_amount: string;
+  billing_interval?: "monthly" | "yearly";
+  grace_period_days?: number;
+  entitled_markets: Array<"IN" | "US">;
+  features?: Record<string, unknown>;
+}) =>
+  apiFetch<AdminPlanItem>("/api/v1/admin/plans", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const fetchAdminAuditLogs = (params?: {
+  limit?: number;
+  offset?: number;
+  action?: string;
+}) => {
+  const sp = new URLSearchParams();
+  if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.offset) sp.set("offset", String(params.offset));
+  if (params?.action) sp.set("action", params.action);
+  const query = sp.toString() ? `?${sp.toString()}` : "";
+  return apiFetch<AuditLogItem[]>(`/api/v1/admin/audit-logs${query}`);
+};
+
+export const fetchAdminProviderStatus = () =>
+  apiFetch<{
+    configured_providers: Record<string, unknown>;
+    telemetry: Array<{
+      provider_code: string;
+      market_code: string;
+      status: string;
+      last_success_at: string | null;
+      last_error_at: string | null;
+      last_error_message: string | null;
+      avg_latency_ms: number | null;
+      daily_api_calls: number;
+      consecutive_failures: number;
+    }>;
+  }>("/api/v1/admin/providers/status");
+
+export const toggleAdminKillSwitch = (enabled: boolean, reason: string) =>
+  apiFetch<{ enabled: boolean; reason: string; message: string }>("/api/v1/admin/kill-switch", {
+    method: "POST",
+    body: JSON.stringify({ enabled, reason }),
+  });
+
+export const fetchAdminWorkflows = () =>
+  apiFetch<{ total: number; workflows: WorkflowRunItem[] }>("/api/v1/admin/workflows");
+
+export const triggerAdminWorkflow = (marketCode: "IN" | "US", mode: "daily" | "orb" = "orb") =>
+  apiFetch<Record<string, unknown>>("/api/v1/admin/workflows/trigger", {
+    method: "POST",
+    body: JSON.stringify({ market_code: marketCode, mode }),
+  });

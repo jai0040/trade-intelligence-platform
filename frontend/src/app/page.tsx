@@ -6,14 +6,17 @@ import { Lock, RefreshCw, ShieldCheck } from "lucide-react";
 import { AppShell, type MarketScope, type NavSectionId } from "@/components/layout/AppShell";
 import { SignalDetailPanel } from "@/components/signals/SignalDetailPanel";
 import { AIAnalystView } from "@/components/views/AIAnalystView";
+import { JournalView } from "@/components/views/JournalView";
 import { NewsAndDisclosuresView } from "@/components/views/NewsAndDisclosuresView";
 import {
   AccountSettingsView,
   NotificationsView,
 } from "@/components/views/NotificationsAndSettingsView";
 import { OverviewView } from "@/components/views/OverviewView";
+import { PerformanceView } from "@/components/views/PerformanceView";
 import { ScannerAndSignalsView } from "@/components/views/ScannerAndSignalsView";
 import { StockAnalysisView } from "@/components/views/StockAnalysisView";
+import { SuperAdminView } from "@/components/views/SuperAdminView";
 import { WatchlistView } from "@/components/views/WatchlistView";
 import {
   API_BASE_URL,
@@ -298,12 +301,17 @@ export default function TradingIntelligenceDashboardPage() {
               userPrefs={userPrefs}
               onRefresh={loadDashboardData}
             />
+          ) : activeNav === "journal" ? (
+            <JournalView />
+          ) : activeNav === "performance" ? (
+            <PerformanceView marketScope={marketScope} />
+          ) : activeNav === "admin" ? (
+            <SuperAdminView />
           ) : (
             <div className="rounded-xl border border-border bg-card p-8 text-center space-y-2">
               <h2 className="text-lg font-semibold capitalize">{activeNav.replace("-", " ")}</h2>
               <p className="text-xs text-muted-foreground">
-                Scheduled for Phase 8 (Trading Journal, Historical Performance &amp; Super Admin) /
-                Phase 9 (Razorpay &amp; Stripe Billing).
+                Scheduled for Phase 9 (Razorpay &amp; Stripe Billing).
               </p>
             </div>
           )}
