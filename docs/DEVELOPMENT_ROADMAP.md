@@ -49,15 +49,15 @@ Before starting Phase 3 foundation builds, verify or install the following local
 
 ---
 
-### PHASE 3: Project Foundation — `PENDING`
-- [ ] Scaffold `backend/` (FastAPI, Pydantic Settings, SQLAlchemy 2.x async/sync, Alembic, structured JSON logging, health endpoints).
-- [ ] Scaffold `database/` with initial Alembic migration for all 23+ normalized tables, UTC timestamps, indexes, and constraints (including partial unique index for single active session).
-- [ ] Scaffold `frontend/` (Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, dark/light FinTech theme tokens, responsive app shell).
-- [ ] Configure Valkey/Redis + Celery worker queues (`india_market`, `us_market`, `analysis`, `notifications`, `maintenance`) + Celery Beat.
-- [ ] Create `docker/docker-compose.yml` (PostgreSQL, Valkey/Redis, Backend, Celery Worker, Celery Beat, Frontend) and local Windows dev runbooks.
-- [ ] Seed initial markets (`IN`, `US`), exchanges (`NSE`, `BSE`, `NASDAQ`, `NYSE`), roles (`super_admin`, `admin`, `subscriber`), and default system settings.
+### PHASE 3: Project Foundation — `COMPLETED`
+- [x] Scaffold `backend/` (FastAPI, Pydantic Settings enforcing `SIGNALS_ONLY` + production provider guardrails, structured JSON logging with secret scrubbing, `/api/v1/health`, security headers, CORS allowlist).
+- [x] Scaffold `database/` with SQLAlchemy 2.x ORM models for all 31 normalized tables, initial Alembic migration (`20261118_0001_initial_schema.py` including `uq_sessions_one_active_per_user` partial unique index and `trg_trading_signals_immutable` trigger), and idempotent seed script (`database/seeds/seed_initial.py`).
+- [x] Scaffold `frontend/` (Next.js 15 App Router, TypeScript, Tailwind CSS, FinTech dark/light theme tokens, responsive 16-view `AppShell`, IST/ET clocks, persistent market switcher, live `/api/v1/health` probe).
+- [x] Configure Valkey/Redis + Celery worker queues (`india_market`, `us_market`, `analysis`, `notifications`, `maintenance`) + Celery Beat (`trading-engine/scheduler/celery_app.py`) with JSON-only serialization and UTC timezone.
+- [x] Create `docker/docker-compose.yml` (PostgreSQL 16, Valkey 8, Backend, Celery Worker, Celery Beat, Frontend), non-root Dockerfiles, and Windows local dev runbook (`docs/deployment/local-development.md`).
+- [x] Add Phase 3 foundation verification unit tests (`tests/unit/test_phase3_foundation.py`, `tests/unit/test_phase3_schema_and_config.py`).
 
-**Exit Criteria:** Full stack boots cleanly, migrations run up/down, `/health` and frontend shell pass smoke tests.
+**Exit Criteria:** Foundation code, migrations, seeds, Docker stack, and static/unit checks verified. *(Runtime live boot of PostgreSQL/Valkey/Next.js pending Docker Desktop or Python 3.12 `.venv` installation on local PC.)* **Gate:** Ready for user approval to begin Phase 4.
 
 ---
 

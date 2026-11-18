@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 25% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --muted: 214 20% 93%;
+    --muted-foreground: 215 16% 42%;
+    --border: 214 20% 86%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 210 40% 98%;
+  }
+
+  .dark {
+    --background: 222 48% 5%;
+    --foreground: 210 40% 96%;
+    --card: 222 42% 9%;
+    --card-foreground: 210 40% 96%;
+    --muted: 220 32% 14%;
+    --muted-foreground: 215 20% 62%;
+    --border: 218 28% 18%;
+    --accent: 199 89% 56%;
+    --accent-foreground: 222 48% 6%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-accent/20 selection:text-accent;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
