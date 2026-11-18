@@ -1,0 +1,24 @@
+PROPRIETARY COMMERCIAL SOFTWARE LICENSE
+
+Copyright (c) 2026 Trade Intelligence Platform. All Rights Reserved.
+
+This repository (`trade-intelligence-platform`) and all original source code,
+architecture, user interfaces, database schemas, workflows, and documentation
+created for this platform are proprietary and confidential. Unauthorized
+copying, distribution, modification, public display, or commercial use of
+proprietary portions of this software without express written permission from
+the copyright holder is strictly prohibited.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY AND UPSTREAM OPEN-SOURCE COMPONENTS
+--------------------------------------------------------------------------------
+
+Portions of this repository under `trading-engine/skills/` are derived from or
+incorporate open-source software from `Jakeschincariol/day-trader-skill`
+licensed under the MIT License (Copyright (c) 2026 Jake Schincariol), and the
+platform utilizes third-party open-source libraries under permissive licenses.
+
+All required copyright notices, attributions, and full license texts are
+preserved in `THIRD_PARTY_NOTICES` and documented in `UPSTREAM.md`. Nothing in
+this proprietary license restricts or alters your rights under the respective
+open-source licenses of those third-party components.

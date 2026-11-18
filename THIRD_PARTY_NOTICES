@@ -1,0 +1,69 @@
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+
+This project incorporates components from third-party open-source projects.
+The original copyright notices and license terms for included and core
+dependencies are listed below.
+
+================================================================================
+1. day-trader-skill (Vendored in `trading-engine/skills/`)
+   Source: https://github.com/Jakeschincariol/day-trader-skill
+   License: MIT License
+================================================================================
+
+MIT License
+
+Copyright (c) 2026 Jake Schincariol
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+2. Core Platform Dependencies (License Registry — Updated Each Phase)
+================================================================================
+
+Frontend:
+- Next.js (Vercel, Inc.) — MIT License
+- React / React DOM (Meta Platforms, Inc.) — MIT License
+- TypeScript (Microsoft Corporation) — Apache License 2.0
+- Tailwind CSS (Tailwind Labs, Inc.) — MIT License
+- shadcn/ui & Radix UI Primitives — MIT License
+- TradingView Lightweight Charts (TradingView, Inc.) — Apache License 2.0
+  Attribution required by Apache-2.0 / TradingView guidelines:
+  "Charts powered by TradingView Lightweight Charts (https://www.tradingview.com/)"
+
+Backend & Trading Engine:
+- FastAPI (Sebastián Ramírez) — MIT License
+- Uvicorn (Encode OSS Ltd.) — BSD 3-Clause License
+- Pydantic v2 (Pydantic Services Inc.) — MIT License
+- SQLAlchemy 2.x — MIT License
+- Alembic — MIT License
+- psycopg 3 — GNU Lesser General Public License v3.0 (LGPL-3.0, dynamically linked)
+- Celery — BSD 3-Clause License
+- redis-py — MIT License
+- argon2-cffi — MIT License
+- cryptography — Apache-2.0 / BSD Dual License
+- httpx — BSD 3-Clause License
+- exchange-calendars — Apache License 2.0
+- pypdf — BSD 3-Clause License
+- stripe-python — MIT License
+- razorpay-python — MIT License
+
+Infrastructure:
+- PostgreSQL — PostgreSQL License (Permissive)
+- Valkey (Redis protocol-compatible) — BSD 3-Clause License
+  (Preferred over Redis >= 7.4 to avoid RSALv2 / SSPLv1 commercial restrictions)
