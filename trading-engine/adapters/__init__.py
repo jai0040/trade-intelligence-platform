@@ -1,1 +1,14 @@
-"""Independent India (NSE/BSE) and US (NASDAQ/NYSE) market adapters — Phase 5."""
+"""Market adapter package exports."""
+
+from adapters.base import CalendarOverride, MarketAdapter
+from adapters.india.adapter import IndiaMarketAdapter
+from adapters.registry import get_market_adapter
+from adapters.usa.adapter import USMarketAdapter
+
+__all__ = [
+    "CalendarOverride",
+    "IndiaMarketAdapter",
+    "MarketAdapter",
+    "USMarketAdapter",
+    "get_market_adapter",
+]

@@ -20,11 +20,16 @@ from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.redis import build_redis_client
+from app.markets.router import router as markets_router
 from app.realtime.router import router as realtime_router
 from app.realtime.ws_manager import WebSocketManager
 from app.subscriptions.router import router as subscriptions_router
 from app.users.router import router as users_router
+from data_providers.base import MarketDataProvider
+from data_providers.factory import build_market_data_provider
+from data_providers.freshness import ProviderHealthMonitor
 from database.session import build_engine, build_session_factory
+from domain.models import MarketCode
 
 logger = logging.getLogger("trade_intelligence.api")
 
@@ -35,6 +40,7 @@ def create_app(
     db_engine: Engine | None = None,
     db_session_factory: sessionmaker[DbSession] | None = None,
     redis_client: Any | None = None,
+    market_providers: dict[MarketCode, MarketDataProvider] | None = None,
 ) -> FastAPI:
     cfg = settings or get_settings()
     configure_logging(cfg.log_level)
@@ -47,6 +53,15 @@ def create_app(
         app.state.settings = cfg
         if not hasattr(app.state, "ws_manager") or app.state.ws_manager is None:
             app.state.ws_manager = WebSocketManager()
+        app.state.provider_health_monitor = ProviderHealthMonitor()
+        app.state.market_providers = market_providers or {
+            MarketCode.IN: build_market_data_provider(
+                cfg.market_data_provider_in, app_env=cfg.app_env
+            ),
+            MarketCode.US: build_market_data_provider(
+                cfg.market_data_provider_us, app_env=cfg.app_env
+            ),
+        }
         app.state.db_engine = db_engine or build_engine(cfg.database_url)
         app.state.db_session_factory = db_session_factory or build_session_factory(
             app.state.db_engine
@@ -120,6 +135,7 @@ def create_app(
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(users_router, prefix="/api/v1")
     app.include_router(subscriptions_router, prefix="/api/v1")
+    app.include_router(markets_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(realtime_router)
     return app

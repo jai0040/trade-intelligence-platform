@@ -157,3 +157,19 @@ def admin_list_audit_logs(
         )
         for row in rows
     ]
+
+
+@router.get("/providers/status")
+def admin_provider_status(
+    request: Request,
+    _auth: AuthContext = Depends(ADMIN_ONLY),
+) -> dict[str, Any]:
+    """Inspect market data provider health, licensing status, latency, and daily API calls."""
+    providers = getattr(request.app.state, "market_providers", {})
+    monitor = getattr(request.app.state, "provider_health_monitor", None)
+    return {
+        "configured_providers": {
+            mkt.value: prov.health_check() for mkt, prov in providers.items()
+        },
+        "telemetry": monitor.snapshot() if monitor is not None else [],
+    }
