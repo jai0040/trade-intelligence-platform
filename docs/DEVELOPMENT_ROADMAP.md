@@ -86,24 +86,25 @@ Before starting Phase 3 foundation builds, verify or install the following local
 
 ---
 
-### PHASE 6: Skill Integration & Centralized Workflow Engine — `PENDING`
-- [ ] Build typed `BaseSkill` wrappers around all 11 preserved skills:
-  1. `trader-scanner` (daily + intraday ORB across India & US equities + ETFs)
-  2. `trader-news` (US RSS/8-K + India corporate announcements/news provider)
-  3. `trader-analyst` (SEC EDGAR XBRL for US + India fundamentals provider interface)
-  4. `trader-entry` (completed-bar confirmation supporting BUY / SELL / WATCH)
-  5. `trader-exit` (deterministic stop/target/ATR/R:R using `Decimal` & market tick size)
-  6. `trader-timemachine` (seeded Monte Carlo + historical replay parameterized for 75/78 bars)
-  7. `trader-budget` (reference model sizing + user-personal position-sizing API)
-  8. `trader-risk` (**mandatory non-overridable risk gate** for platform signals + user sizing)
-  9. `trader-broker` (**read-only trade ticket generator ONLY** — zero live broker execution)
-  10. `trader-alerts` (price/stop/target/time/opening-bell evaluation across both markets)
-  11. `trader-pelosi` (US-only House Clerk PTR monitor with pure-Python PDF parser fallback)
-- [ ] Build the DAG Workflow Engine with `workflow_run_id`, Redis distributed locks, DB `idempotency_key`, `skill_runs` execution logs, exponential retry handling, and **Global Emergency Kill Switch** checks.
-- [ ] Build the decoupled **AI Analyst service** (generates structured reasoning & explanations from deterministic outputs; verified unable to modify prices or bypass risk rejections).
-- [ ] Implement immutable `trading_signals` snapshots, calibrated composite confidence scoring, and automated `signal_updates` / `signal_outcomes` tracking.
+### PHASE 6: Skill Integration & Centralized Workflow Engine — `COMPLETED`
+- [x] Build stateless, typed `BaseSkill` wrappers (`trading-engine/skill_wrappers/`) around all 11 vendored skills (leaving `trading-engine/skills/` 100% unmodified):
+  1. `scanner_wrapper.py` (`trader-scanner` daily + ORB across India & US equities + ETFs, BUY/SELL/WATCH)
+  2. `news_wrapper.py` (`trader-news` US SEC 8-K + India NSE/BSE corporate announcements, deduped)
+  3. `analyst_wrapper.py` (`trader-analyst` US SEC EDGAR + India NSE/BSE quarterly fundamentals + gap risk)
+  4. `entry_wrapper.py` (`trader-entry` completed-bar confirmation supporting BUY / SELL / WATCH)
+  5. `exit_wrapper.py` (`trader-exit` deterministic `Decimal` tick-aligned stop/target/R:R for long & short)
+  6. `timemachine_wrapper.py` (`trader-timemachine` seeded Monte Carlo + 60-day replay parameterized for 75/78 bars)
+  7. `budget_wrapper.py` (`trader-budget` deterministic `Decimal` model sizing + `/api/v1/tools/position-size`)
+  8. `risk_wrapper.py` + `risk_engine/validator.py` (**mandatory non-overridable risk gate** — any block marks signal `Rejected`)
+  9. `broker_ticket_wrapper.py` (**SIGNALS-ONLY hard lock** — read-only trade sheet ONLY; `place_live_order` raises `SignalsOnlyPolicyError`)
+  10. `alerts_wrapper.py` (`trader-alerts` signal lifecycle & user alert evaluator)
+  11. `pelosi_wrapper.py` (`trader-pelosi` US-only House Clerk PTR monitor with pure-Python `pypdf` parser + 45-day disclosure lag flag; skipped on India)
+- [x] Build centralized DAG Workflow Engine (`trading-engine/workflows/dag_engine.py`) with `workflow_run_id`, idempotency keys, locks, `skill_runs` telemetry, exponential retries, and **Global Emergency Kill Switch** pre-checks + scheduled Celery India/US tasks (`workflows/tasks.py`, `scheduler/celery_app.py`).
+- [x] Build decoupled read-only **AI Analyst** (`trading-engine/ai_analyst/service.py`) refusing `REJECTED` signals and unable to mutate numeric signal prices/levels.
+- [x] Implement calibrated Composite Setup Quality Score (`signal_engine/confidence.py`), net-of-cost outcome tracker (`signal_engine/outcome_tracker.py` deducting 15 bps India / 8 bps US), and FastAPI intelligence endpoints (`/scanner/results`, `/signals`, `/signals/{id}`, `/signals/performance/summary`, `/news`, `/disclosures/congress`, `/tools/position-size`, `/ai-analyst/query`, `/admin/kill-switch`, `/admin/workflows`).
+- [x] Verify all live unit & end-to-end offline India/US DAG tests (`tests/unit/test_phase6_skills_and_dag.py` + `tests/integration/test_phase6_signals_and_killswitch.py`).
 
-**Exit Criteria:** End-to-end offline DAG tests pass for both India and US markets; duplicate execution prevention, risk-rejection enforcement, and kill-switch tests pass.
+**Exit Criteria:** All live unit & end-to-end India/US DAG tests passed (`ALL PHASE 3, 4, 5 & 6 LIVE UNIT & E2E DAG TESTS PASSED!`). **Gate:** Ready for user approval to begin Phase 7.
 
 ---
 

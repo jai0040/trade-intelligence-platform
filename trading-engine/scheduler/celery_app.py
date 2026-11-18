@@ -58,12 +58,32 @@ celery_app.conf.update(
         "workflows.tasks.run_analysis_*": {"queue": "analysis"},
         "workflows.tasks.dispatch_notification*": {"queue": "notifications"},
     },
-    # Phase 3 foundation beat schedule (market-specific DAG triggers wired in Phase 6)
+    # Multi-market beat schedules (UTC); MarketAdapters enforce exact IST/ET holidays & DST inside tasks
     beat_schedule={
         "worker-heartbeat-every-5m": {
             "task": "workflows.tasks.heartbeat",
             "schedule": crontab(minute="*/5"),
             "options": {"queue": "maintenance"},
+        },
+        "india-premarket-daily-scan": {
+            "task": "workflows.tasks.run_india_premarket_scan",
+            "schedule": crontab(hour=3, minute=15, day_of_week="1-5"),  # 08:45 IST
+            "options": {"queue": "india_market"},
+        },
+        "india-intraday-orb-every-5m": {
+            "task": "workflows.tasks.run_india_intraday_orb",
+            "schedule": crontab(minute="*/5", hour="3-10", day_of_week="1-5"),  # 09:15-15:30 IST
+            "options": {"queue": "india_market"},
+        },
+        "us-premarket-daily-scan": {
+            "task": "workflows.tasks.run_us_premarket_scan",
+            "schedule": crontab(hour=13, minute=0, day_of_week="1-5"),  # 08:00 EST / 09:00 EDT
+            "options": {"queue": "us_market"},
+        },
+        "us-intraday-orb-every-5m": {
+            "task": "workflows.tasks.run_us_intraday_orb",
+            "schedule": crontab(minute="*/5", hour="13-21", day_of_week="1-5"),  # US regular hours
+            "options": {"queue": "us_market"},
         },
     },
 )

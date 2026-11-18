@@ -1,1 +1,5 @@
-"""Decoupled LLM explanation & synthesis service (read-only over deterministic outputs) — Phase 6."""
+"""AI Analyst package exports."""
+
+from ai_analyst.service import AIAnalystService, AIExplanation, STANDARD_DISCLAIMER
+
+__all__ = ["AIAnalystService", "AIExplanation", "STANDARD_DISCLAIMER"]

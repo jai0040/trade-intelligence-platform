@@ -23,6 +23,8 @@ from app.core.redis import build_redis_client
 from app.markets.router import router as markets_router
 from app.realtime.router import router as realtime_router
 from app.realtime.ws_manager import WebSocketManager
+from app.signals.router import router as signals_router
+from app.signals.service import SignalsEngineHub
 from app.subscriptions.router import router as subscriptions_router
 from app.users.router import router as users_router
 from data_providers.base import MarketDataProvider
@@ -54,6 +56,7 @@ def create_app(
         if not hasattr(app.state, "ws_manager") or app.state.ws_manager is None:
             app.state.ws_manager = WebSocketManager()
         app.state.provider_health_monitor = ProviderHealthMonitor()
+        app.state.signals_hub = SignalsEngineHub(llm_provider=cfg.llm_provider)
         app.state.market_providers = market_providers or {
             MarketCode.IN: build_market_data_provider(
                 cfg.market_data_provider_in, app_env=cfg.app_env
@@ -136,6 +139,7 @@ def create_app(
     app.include_router(users_router, prefix="/api/v1")
     app.include_router(subscriptions_router, prefix="/api/v1")
     app.include_router(markets_router, prefix="/api/v1")
+    app.include_router(signals_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(realtime_router)
     return app

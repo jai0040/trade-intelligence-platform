@@ -29,7 +29,14 @@ from app.core.audit import record_audit_event
 from app.core.errors import APIError
 from app.core.rate_limit import extract_client_ip
 from app.realtime.ws_manager import WebSocketManager
+from app.signals.schemas import (
+    KillSwitchResponse,
+    KillSwitchUpdateRequest,
+    ManualWorkflowTriggerRequest,
+)
+from app.signals.service import SignalsEngineHub, read_kill_switch, update_kill_switch
 from database.models.identity import AuditLog, User
+from domain.models import MarketCode
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -173,3 +180,93 @@ def admin_provider_status(
         },
         "telemetry": monitor.snapshot() if monitor is not None else [],
     }
+
+
+@router.post(
+    "/kill-switch",
+    response_model=KillSwitchResponse,
+    dependencies=[Depends(require_csrf)],
+)
+def admin_toggle_kill_switch(
+    payload: KillSwitchUpdateRequest,
+    request: Request,
+    auth: AuthContext = Depends(ADMIN_ONLY),
+    db: DbSession = Depends(get_db),
+    redis_client: Any | None = Depends(get_redis),
+) -> KillSwitchResponse:
+    """Toggle Global Emergency Kill Switch (halts automated analysis without deleting any data; audited)."""
+    enabled = update_kill_switch(
+        db,
+        redis_client=redis_client,
+        enabled=payload.enabled,
+        actor_user_id=auth.user.id,
+        reason=payload.reason,
+        ip_address=extract_client_ip(request),
+    )
+    msg = (
+        "Global Emergency Kill Switch ENABLED: automated scans and signal publishing halted; historical data preserved."
+        if enabled
+        else "Global Emergency Kill Switch DISABLED: automated market workflows resumed."
+    )
+    return KillSwitchResponse(enabled=enabled, reason=payload.reason, message=msg)
+
+
+@router.get("/workflows")
+def admin_list_workflows(
+    request: Request,
+    _auth: AuthContext = Depends(ADMIN_ONLY),
+) -> dict[str, Any]:
+    """Inspect recent workflow_runs and per-skill execution telemetry."""
+    hub: SignalsEngineHub = request.app.state.signals_hub
+    return {
+        "total": len(hub.workflow_reports),
+        "workflows": [
+            {
+                **r.summary(),
+                "idempotency_key": r.idempotency_key,
+                "triggered_by": r.triggered_by,
+                "started_at_utc": r.started_at_utc,
+                "finished_at_utc": r.finished_at_utc,
+                "error_message": r.error_message,
+                "skill_runs": [
+                    {
+                        "id": sr.id,
+                        "skill_name": sr.skill_name,
+                        "status": sr.status,
+                        "retry_count": sr.retry_count,
+                        "duration_ms": sr.duration_ms,
+                        "error_trace": sr.error_trace,
+                    }
+                    for sr in r.skill_runs
+                ],
+            }
+            for r in hub.workflow_reports[:25]
+        ],
+    }
+
+
+@router.post(
+    "/workflows/trigger",
+    dependencies=[Depends(require_csrf)],
+)
+def admin_trigger_workflow(
+    payload: ManualWorkflowTriggerRequest,
+    request: Request,
+    _auth: AuthContext = Depends(ADMIN_ONLY),
+    db: DbSession = Depends(get_db),
+    redis_client: Any | None = Depends(get_redis),
+) -> dict[str, Any]:
+    """Manually trigger an India or US market DAG workflow (honors Kill Switch)."""
+    hub: SignalsEngineHub = request.app.state.signals_hub
+    mkt = MarketCode(payload.market_code)
+    provider = request.app.state.market_providers[mkt]
+    kill_active = read_kill_switch(db, redis_client)
+    report = hub.run_market_workflow(
+        market_code=mkt,
+        provider=provider,
+        mode=payload.mode,
+        triggered_by="admin_manual",
+        kill_switch_active=kill_active,
+        force_duplicate=True,
+    )
+    return report.summary()
