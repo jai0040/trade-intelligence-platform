@@ -1,0 +1,491 @@
+openapi: 3.1.0
+info:
+  title: AI Trading Intelligence SaaS Platform API
+  version: 1.0.0
+  description: >
+    Production REST API contract for the Multi-Market (India NSE/BSE & US NASDAQ/NYSE)
+    AI Trading Intelligence SaaS platform. Operates strictly in SIGNALS-ONLY mode.
+servers:
+  - url: /api/v1
+    description: Version 1 REST API
+
+security:
+  - SessionCookie: []
+
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: tip_session
+    CsrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          examples: [SESSION_SUPERSEDED, SUBSCRIPTION_REQUIRED, RATE_LIMITED, VALIDATION_ERROR]
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    UserProfile:
+      type: object
+      required: [id, email, full_name, role, country_code, is_active]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        full_name: { type: string }
+        role: { type: string, enum: [super_admin, admin, subscriber] }
+        country_code: { type: string }
+        is_active: { type: boolean }
+        subscription_status: { type: string, enum: [none, trialing, active, past_due, cancelled, expired] }
+        entitled_markets:
+          type: array
+          items: { type: string, enum: [IN, US] }
+
+    MarketStatus:
+      type: object
+      required: [market_code, exchange_code, is_open, session_phase, timezone, local_time, data_freshness]
+      properties:
+        market_code: { type: string, enum: [IN, US] }
+        exchange_code: { type: string, enum: [NSE, BSE, NASDAQ, NYSE] }
+        is_open: { type: boolean }
+        session_phase: { type: string, enum: [PRE_OPEN, REGULAR, EARLY_CLOSE, CLOSED, HOLIDAY] }
+        timezone: { type: string }
+        local_time: { type: string, format: date-time }
+        next_open_utc: { type: string, format: date-time, nullable: true }
+        data_freshness:
+          type: object
+          required: [provider, status, delay_seconds, is_stale]
+          properties:
+            provider: { type: string }
+            status: { type: string, enum: [HEALTHY, DEGRADED, DOWN] }
+            last_quote_utc: { type: string, format: date-time, nullable: true }
+            delay_seconds: { type: integer }
+            is_stale: { type: boolean }
+
+    TradingSignal:
+      type: object
+      required:
+        - id
+        - market_code
+        - exchange_code
+        - symbol
+        - company_name
+        - strategy
+        - signal_type
+        - entry_price
+        - stop_loss
+        - target_price
+        - risk_reward_ratio
+        - confidence_score
+        - risk_validation_status
+        - current_status
+        - generated_at_utc
+        - expires_at_utc
+      properties:
+        id: { type: string, format: uuid }
+        market_code: { type: string, enum: [IN, US] }
+        exchange_code: { type: string, enum: [NSE, BSE, NASDAQ, NYSE] }
+        symbol: { type: string }
+        company_name: { type: string }
+        currency: { type: string, enum: [INR, USD] }
+        strategy: { type: string }
+        signal_type: { type: string, enum: [BUY, SELL, WATCH] }
+        entry_price: { type: string, description: Decimal string }
+        stop_loss: { type: string, description: Decimal string }
+        target_price: { type: string, description: Decimal string }
+        risk_reward_ratio: { type: string, description: Decimal string }
+        confidence_score: { type: number, minimum: 0, maximum: 100 }
+        confidence_label: { type: string, description: "Composite Setup Quality Score (not a win probability)" }
+        confidence_breakdown: { type: object, additionalProperties: true }
+        ai_reasoning: { type: string, nullable: true }
+        technical_indicators: { type: object, additionalProperties: true }
+        news_context: { type: object, additionalProperties: true }
+        timemachine_summary: { type: object, nullable: true, additionalProperties: true }
+        broker_ticket_preview: { type: object, nullable: true, description: "Read-only trade sheet; never auto-executed" }
+        risk_validation_status: { type: string, enum: [PASSED, REJECTED] }
+        current_status:
+          type: string
+          enum: [Pending, Active, Triggered, Target Hit, Stop Loss Hit, Expired, Cancelled, Rejected]
+        data_source_provider: { type: string }
+        data_as_of_utc: { type: string, format: date-time }
+        generated_at_utc: { type: string, format: date-time }
+        last_updated_at_utc: { type: string, format: date-time }
+        expires_at_utc: { type: string, format: date-time }
+
+paths:
+  /health:
+    get:
+      summary: Service liveness and dependency health check
+      security: []
+      responses:
+        "200":
+          description: Service healthy
+
+  # --- Authentication & Single Active Session ---
+  /auth/register:
+    post:
+      summary: Register a new subscriber account
+      security: []
+      responses:
+        "201": { description: Account created }
+        "409": { description: Email already registered }
+
+  /auth/login:
+    post:
+      summary: Authenticate user and enforce Single Active Session (evicts prior device)
+      security: []
+      responses:
+        "200":
+          description: Session cookie issued; previous active session invalidated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401": { description: Invalid credentials }
+        "429": { description: Rate limited }
+
+  /auth/logout:
+    post:
+      summary: Revoke current server-side session and clear cookie
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      responses:
+        "204": { description: Logged out }
+
+  /auth/me:
+    get:
+      summary: Fetch authenticated user profile & entitlement state
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthenticated or SESSION_SUPERSEDED
+
+  /auth/password-reset/request:
+    post:
+      summary: Request time-limited password reset token
+      security: []
+      responses:
+        "202": { description: Accepted (constant response to prevent email enumeration) }
+
+  /auth/password-reset/confirm:
+    post:
+      summary: Complete password reset and revoke all existing sessions
+      security: []
+      responses:
+        "200": { description: Password updated }
+
+  # --- Markets & Instruments ---
+  /markets/status:
+    get:
+      summary: Live market open/closed status, session phases, and data freshness for India & US
+      responses:
+        "200":
+          description: Market status list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketStatus"
+
+  /markets/{market_code}/indices:
+    get:
+      summary: Major benchmark indices for India (NIFTY 50, SENSEX, BANKNIFTY) or US (SPY, QQQ, DIA)
+      parameters:
+        - name: market_code
+          in: path
+          required: true
+          schema: { type: string, enum: [IN, US] }
+      responses:
+        "200": { description: Index snapshots with source & timestamp }
+
+  /instruments/search:
+    get:
+      summary: Search equities and ETFs across India and US markets
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: market
+          in: query
+          schema: { type: string, enum: [ALL, IN, US], default: ALL }
+      responses:
+        "200": { description: Matching instruments }
+
+  /instruments/{instrument_id}/bars:
+    get:
+      summary: Historical & intraday OHLCV bars for TradingView Lightweight Charts
+      parameters:
+        - name: instrument_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: timeframe
+          in: query
+          schema: { type: string, enum: [1m, 5m, 15m, 1d], default: 5m }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 10, maximum: 1000, default: 200 }
+      responses:
+        "200": { description: Ordered bars with source_provider and freshness metadata }
+
+  /instruments/{instrument_id}/fundamentals:
+    get:
+      summary: Quarterly & TTM reported financials (SEC EDGAR for US; NSE/BSE provider for India)
+      parameters:
+        - name: instrument_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Fundamentals report }
+
+  # --- Scanner, Signals & Performance ---
+  /scanner/results:
+    get:
+      summary: Latest stock scanner hits with market, setup, liquidity, and freshness metadata
+      parameters:
+        - name: market
+          in: query
+          schema: { type: string, enum: [ALL, IN, US], default: ALL }
+        - name: mode
+          in: query
+          schema: { type: string, enum: [daily, orb], default: orb }
+        - name: setup
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 25, maximum: 100 }
+      responses:
+        "200": { description: Paginated scanner hits }
+
+  /signals:
+    get:
+      summary: List published trading signals (only risk-validated signals for subscribers)
+      parameters:
+        - name: market
+          in: query
+          schema: { type: string, enum: [ALL, IN, US], default: ALL }
+        - name: signal_type
+          in: query
+          schema: { type: string, enum: [BUY, SELL, WATCH] }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: strategy
+          in: query
+          schema: { type: string }
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, default: -generated_at_utc }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: page_size
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        "200": { description: Paginated signals list }
+
+  /signals/{signal_id}:
+    get:
+      summary: Detailed immutable signal snapshot, status audit trail, and broker-ready ticket preview
+      parameters:
+        - name: signal_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Signal details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TradingSignal"
+
+  /signals/performance/summary:
+    get:
+      summary: Historical signal outcome analytics with documented gross/net methodology
+      parameters:
+        - name: market
+          in: query
+          schema: { type: string, enum: [ALL, IN, US], default: ALL }
+        - name: strategy
+          in: query
+          schema: { type: string }
+        - name: days
+          in: query
+          schema: { type: integer, default: 30 }
+      responses:
+        "200": { description: Verified historical outcome metrics }
+
+  # --- News, Disclosures & AI Analyst ---
+  /news:
+    get:
+      summary: Market news and regulatory filings (8-K / NSE-BSE announcements)
+      parameters:
+        - name: market
+          in: query
+          schema: { type: string, enum: [ALL, IN, US], default: ALL }
+        - name: symbol
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Paginated news feed }
+
+  /disclosures/congress:
+    get:
+      summary: US Congressional PTR disclosures (trader-pelosi, US market only, with disclosure lag)
+      responses:
+        "200": { description: Paginated PTR disclosures }
+
+  /ai-analyst/query:
+    post:
+      summary: Rate-limited AI explanation query over deterministic market/signal context
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      responses:
+        "200": { description: Structured AI analysis with disclaimer }
+        "429": { description: AI quota exceeded }
+
+  # --- User-Isolated Workspace (Strictly Scoped to Authenticated user_id) ---
+  /watchlists:
+    get: { summary: List current user's watchlists, responses: { "200": { description: OK } } }
+    post: { summary: Create watchlist, security: [{ SessionCookie: [], CsrfHeader: [] }], responses: { "201": { description: Created } } }
+
+  /journal:
+    get: { summary: List current user's private trading journal entries, responses: { "200": { description: OK } } }
+    post: { summary: Create personal trading journal entry, security: [{ SessionCookie: [], CsrfHeader: [] }], responses: { "201": { description: Created } } }
+
+  /tools/position-size:
+    post:
+      summary: Deterministic personal position sizing calculator (trader-budget + trader-risk math; no order placed)
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      responses:
+        "200": { description: Calculated share count, binding limit, and risk validation result }
+
+  /notifications:
+    get: { summary: List current user's notifications, responses: { "200": { description: OK } } }
+
+  /notifications/preferences:
+    get: { summary: Get user notification preferences, responses: { "200": { description: OK } } }
+    patch: { summary: Update user notification preferences, security: [{ SessionCookie: [], CsrfHeader: [] }], responses: { "200": { description: Updated } } }
+
+  # --- Subscriptions & Verified Payment Webhooks ---
+  /subscriptions/plans:
+    get:
+      summary: List active public subscription plans (INR & USD)
+      security: []
+      responses:
+        "200": { description: Active plans }
+
+  /subscriptions/me:
+    get: { summary: Current user subscription & entitlement status, responses: { "200": { description: OK } } }
+
+  /subscriptions/checkout:
+    post:
+      summary: Create Razorpay or Stripe checkout session (does NOT activate subscription directly)
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      responses:
+        "200": { description: Checkout session payload }
+
+  /payments/history:
+    get: { summary: Current user's payment & invoice history, responses: { "200": { description: OK } } }
+
+  /webhooks/razorpay:
+    post:
+      summary: Razorpay signed webhook endpoint (verified via X-Razorpay-Signature HMAC-SHA256)
+      security: []
+      responses:
+        "200": { description: Event recorded and processed idempotently }
+        "400": { description: Invalid signature or payload }
+
+  /webhooks/stripe:
+    post:
+      summary: Stripe signed webhook endpoint (verified via Stripe-Signature HMAC)
+      security: []
+      responses:
+        "200": { description: Event recorded and processed idempotently }
+        "400": { description: Invalid signature or payload }
+
+  # --- Super Admin APIs (RBAC: super_admin / admin) ---
+  /admin/overview:
+    get: { summary: Platform KPIs (users, active/expired subs, MRR, active workers, kill-switch status), responses: { "200": { description: OK } } }
+
+  /admin/users:
+    get: { summary: Paginated user & subscription directory (no password hashes or secrets), responses: { "200": { description: OK } } }
+
+  /admin/users/{user_id}/status:
+    patch:
+      summary: Activate or deactivate a user account (audited)
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: User status updated }
+
+  /admin/users/{user_id}/revoke-session:
+    post:
+      summary: Immediately revoke user's active session via DB + Redis + WebSocket (audited)
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Session revoked }
+
+  /admin/plans:
+    post:
+      summary: Create or configure subscription plan pricing (Super Admin only, audited)
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      responses:
+        "201": { description: Plan created }
+
+  /admin/workflows:
+    get: { summary: Inspect workflow_runs, skill_runs, and failed jobs, responses: { "200": { description: OK } } }
+
+  /admin/providers/status:
+    get: { summary: Inspect market data provider health, freshness, and API usage, responses: { "200": { description: OK } } }
+
+  /admin/kill-switch:
+    post:
+      summary: Toggle Global Emergency Kill Switch (halts automated analysis & signal publishing without deleting data; audited)
+      security: [{ SessionCookie: [], CsrfHeader: [] }]
+      responses:
+        "200": { description: Kill switch state updated }
+
+  /admin/audit-logs:
+    get: { summary: Query immutable admin and security audit log, responses: { "200": { description: OK } } }
