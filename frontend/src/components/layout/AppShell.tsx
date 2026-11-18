@@ -75,7 +75,7 @@ const SUBSCRIBER_NAV: NavItem[] = [
   { id: "journal", label: "Trading Journal", icon: BookOpen },
   { id: "performance", label: "Historical Performance", icon: BarChart3 },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "subscription", label: "Subscription & Billing", badge: "P9", icon: CreditCard },
+  { id: "subscription", label: "Subscription & Billing", icon: CreditCard },
   { id: "settings", label: "Account Settings", icon: Settings },
   { id: "admin", label: "Super Admin Panel", adminOnly: true, icon: ShieldAlert },
 ];

@@ -16,6 +16,7 @@ import { OverviewView } from "@/components/views/OverviewView";
 import { PerformanceView } from "@/components/views/PerformanceView";
 import { ScannerAndSignalsView } from "@/components/views/ScannerAndSignalsView";
 import { StockAnalysisView } from "@/components/views/StockAnalysisView";
+import { SubscriptionBillingView } from "@/components/views/SubscriptionBillingView";
 import { SuperAdminView } from "@/components/views/SuperAdminView";
 import { WatchlistView } from "@/components/views/WatchlistView";
 import {
@@ -307,11 +308,13 @@ export default function TradingIntelligenceDashboardPage() {
             <PerformanceView marketScope={marketScope} />
           ) : activeNav === "admin" ? (
             <SuperAdminView />
+          ) : activeNav === "subscription" ? (
+            <SubscriptionBillingView user={user} onRefresh={loadDashboardData} />
           ) : (
             <div className="rounded-xl border border-border bg-card p-8 text-center space-y-2">
               <h2 className="text-lg font-semibold capitalize">{activeNav.replace("-", " ")}</h2>
               <p className="text-xs text-muted-foreground">
-                Scheduled for Phase 9 (Razorpay &amp; Stripe Billing).
+                Section content ready.
               </p>
             </div>
           )}

@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     # AI Analyst
     llm_provider: str = "mock"
 
+    # Payments & Webhooks (Phase 9)
+    razorpay_key_id: str = "rzp_test_placeholder"
+    razorpay_key_secret: str = "rzp_test_secret_placeholder"
+    razorpay_webhook_secret: str = "rzp_webhook_secret_placeholder"
+    stripe_publishable_key: str = "pk_test_placeholder"
+    stripe_secret_key: str = "sk_test_placeholder"
+    stripe_webhook_secret: str = "whsec_placeholder"
+
     @field_validator("trading_mode")
     @classmethod
     def enforce_signals_only(cls, value: str) -> str:

@@ -1,1 +1,1 @@
-"""Razorpay (INR) & Stripe (USD) adapters and verified webhook handlers (Phase 9)."""
+"""Razorpay (INR) & Stripe (USD) payment adapters, checkout sessions, and webhook handlers."""

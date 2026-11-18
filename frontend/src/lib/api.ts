@@ -805,3 +805,97 @@ export const triggerAdminWorkflow = (marketCode: "IN" | "US", mode: "daily" | "o
     method: "POST",
     body: JSON.stringify({ market_code: marketCode, mode }),
   });
+
+// --- Phase 9: Payments & Subscriptions (Razorpay & Stripe) ---
+
+export interface SubscriptionPlanItem {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  currency: string;
+  price_amount: string | number;
+  billing_interval: string;
+  grace_period_days: number;
+  entitled_markets: Array<"IN" | "US">;
+  features: Record<string, unknown>;
+  is_active: boolean;
+}
+
+export interface UserSubscriptionDetail {
+  subscription_status: "none" | "trialing" | "active" | "past_due" | "cancelled" | "expired";
+  entitled_markets: string[];
+  is_entitled: boolean;
+  plan: SubscriptionPlanItem | null;
+  provider: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  grace_until: string | null;
+  cancel_at_period_end: boolean;
+}
+
+export interface CheckoutSessionResult {
+  checkout_url: string | null;
+  provider: "razorpay" | "stripe";
+  provider_session_id: string | null;
+  provider_order_id: string | null;
+  public_key: string;
+  currency: string;
+  amount: string | number;
+  plan_id: string;
+  plan_name: string;
+  plan_code: string;
+}
+
+export interface PaymentHistoryItem {
+  id: string;
+  invoice_number: string;
+  provider: string;
+  provider_payment_id: string;
+  amount: string | number;
+  tax_amount: string | number;
+  currency: string;
+  status: "succeeded" | "failed" | "pending" | "refunded";
+  failure_reason: string | null;
+  receipt_url: string | null;
+  paid_at: string | null;
+  created_at: string;
+  plan_name: string | null;
+}
+
+export interface PaymentHistoryResponse {
+  items: PaymentHistoryItem[];
+  total: number;
+}
+
+export const fetchSubscriptionPlans = () =>
+  apiFetch<SubscriptionPlanItem[]>("/api/v1/subscriptions/plans");
+
+export const fetchMySubscription = () =>
+  apiFetch<UserSubscriptionDetail>("/api/v1/subscriptions/me");
+
+export const createCheckoutSession = (payload: {
+  plan_id: string;
+  provider: "razorpay" | "stripe";
+  return_url?: string;
+}) =>
+  apiFetch<CheckoutSessionResult>("/api/v1/subscriptions/checkout", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const cancelSubscription = (reason?: string) =>
+  apiFetch<{
+    status: string;
+    cancel_at_period_end: boolean;
+    cancelled_at: string | null;
+    current_period_end: string | null;
+    message: string;
+  }>("/api/v1/subscriptions/cancel", {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+
+export const fetchPaymentHistory = (limit = 50, offset = 0) =>
+  apiFetch<PaymentHistoryResponse>(`/api/v1/payments/history?limit=${limit}&offset=${offset}`);
+
