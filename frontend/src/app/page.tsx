@@ -1,208 +1,318 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Activity, CheckCircle2, Database, Layers, Server, ShieldCheck, XCircle } from "lucide-react";
-import { AppShell, type MarketScope } from "@/components/layout/AppShell";
+import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Lock, RefreshCw, ShieldCheck } from "lucide-react";
+import { AppShell, type MarketScope, type NavSectionId } from "@/components/layout/AppShell";
+import { SignalDetailPanel } from "@/components/signals/SignalDetailPanel";
+import { AIAnalystView } from "@/components/views/AIAnalystView";
+import { NewsAndDisclosuresView } from "@/components/views/NewsAndDisclosuresView";
+import {
+  AccountSettingsView,
+  NotificationsView,
+} from "@/components/views/NotificationsAndSettingsView";
+import { OverviewView } from "@/components/views/OverviewView";
+import { ScannerAndSignalsView } from "@/components/views/ScannerAndSignalsView";
+import { StockAnalysisView } from "@/components/views/StockAnalysisView";
+import { WatchlistView } from "@/components/views/WatchlistView";
+import {
+  API_BASE_URL,
+  fetchCongressDisclosures,
+  fetchCurrentUser,
+  fetchMarketIndices,
+  fetchMarketNews,
+  fetchMarketsStatus,
+  fetchNotificationPreferences,
+  fetchNotifications,
+  fetchPerformanceSummary,
+  fetchScannerResults,
+  fetchSignals,
+  fetchUserPreferences,
+  fetchWatchlists,
+  logoutAccount,
+  type CongressDisclosureItem,
+  type IndexSnapshot,
+  type MarketNewsItem,
+  type MarketStatusItem,
+  type NotificationItem,
+  type NotificationPreferences,
+  type PerformanceSummary,
+  type ScannerHit,
+  type TradingSignalItem,
+  type UserPreferences,
+  type UserProfile,
+  type Watchlist,
+} from "@/lib/api";
+import { useRealtimeStream } from "@/lib/useRealtimeStream";
 
-interface HealthResponse {
-  status: string;
-  service: string;
-  environment: string;
-  trading_mode: string;
-  kill_switch: { enabled: boolean; source: string };
-  timestamp_utc: string;
-  dependencies: {
-    postgresql: { ok: boolean; detail: string };
-    valkey_redis: { ok: boolean; detail: string };
-  };
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-
-export default function FoundationOverviewPage() {
+export default function TradingIntelligenceDashboardPage() {
+  const [activeNav, setActiveNav] = useState<NavSectionId>("overview");
   const [marketScope, setMarketScope] = useState<MarketScope>("ALL");
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [healthError, setHealthError] = useState<string | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [killSwitchEnabled, setKillSwitchEnabled] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    fetch(`${API_BASE}/api/v1/health`, { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<HealthResponse>;
-      })
-      .then((data) => {
-        if (active) {
-          setHealth(data);
-          setHealthError(null);
-        }
-      })
-      .catch((err: unknown) => {
-        if (active) {
-          setHealthError(err instanceof Error ? err.message : "Backend unreachable");
-        }
-      });
-    return () => {
-      active = false;
-    };
+  const [marketStatuses, setMarketStatuses] = useState<MarketStatusItem[]>([]);
+  const [indices, setIndices] = useState<IndexSnapshot[]>([]);
+  const [scannerHits, setScannerHits] = useState<ScannerHit[]>([]);
+  const [signals, setSignals] = useState<TradingSignalItem[]>([]);
+  const [news, setNews] = useState<MarketNewsItem[]>([]);
+  const [disclosures, setDisclosures] = useState<CongressDisclosureItem[]>([]);
+  const [stockActNotice, setStockActNotice] = useState(
+    "US House Clerk PTR filings may carry up to a 45-day statutory disclosure lag."
+  );
+  const [performance, setPerformance] = useState<PerformanceSummary | null>(null);
+  const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences | null>(null);
+  const [userPrefs, setUserPrefs] = useState<UserPreferences | null>(null);
+  const [selectedSignal, setSelectedSignal] = useState<TradingSignalItem | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadDashboardData = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [
+        statusRes,
+        inIdx,
+        usIdx,
+        scanRes,
+        sigRes,
+        newsRes,
+        congressRes,
+        perfRes,
+        wlRes,
+        notifRes,
+        nPrefRes,
+        uPrefRes,
+      ] = await Promise.allSettled([
+        fetchMarketsStatus(),
+        fetchMarketIndices("IN"),
+        fetchMarketIndices("US"),
+        fetchScannerResults({ market: "ALL", page_size: 100 }),
+        fetchSignals({ market: "ALL", page_size: 100 }),
+        fetchMarketNews("ALL"),
+        fetchCongressDisclosures(),
+        fetchPerformanceSummary("ALL"),
+        fetchWatchlists(),
+        fetchNotifications(),
+        fetchNotificationPreferences(),
+        fetchUserPreferences(),
+      ]);
+
+      if (statusRes.status === "fulfilled") setMarketStatuses(statusRes.value);
+      const mergedIndices: IndexSnapshot[] = [];
+      if (inIdx.status === "fulfilled") mergedIndices.push(...inIdx.value);
+      if (usIdx.status === "fulfilled") mergedIndices.push(...usIdx.value);
+      setIndices(mergedIndices);
+      if (scanRes.status === "fulfilled") setScannerHits(scanRes.value.items);
+      if (sigRes.status === "fulfilled") setSignals(sigRes.value.items);
+      if (newsRes.status === "fulfilled") setNews(newsRes.value.items);
+      if (congressRes.status === "fulfilled") {
+        setDisclosures(congressRes.value.items);
+        setStockActNotice(congressRes.value.stock_act_notice);
+      }
+      if (perfRes.status === "fulfilled") setPerformance(perfRes.value);
+      if (wlRes.status === "fulfilled") setWatchlists(wlRes.value);
+      if (notifRes.status === "fulfilled") {
+        setNotifications(notifRes.value.items);
+        setUnreadCount(notifRes.value.unread_count);
+      }
+      if (nPrefRes.status === "fulfilled") setNotifPrefs(nPrefRes.value);
+      if (uPrefRes.status === "fulfilled") setUserPrefs(uPrefRes.value);
+    } finally {
+      setRefreshing(false);
+    }
   }, []);
 
-  const showIndia = marketScope === "ALL" || marketScope === "IN";
-  const showUS = marketScope === "ALL" || marketScope === "US";
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/v1/health`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.kill_switch?.enabled) setKillSwitchEnabled(true);
+      })
+      .catch(() => {});
+
+    fetchCurrentUser()
+      .then((u) => {
+        setUser(u);
+        setAuthChecked(true);
+        void loadDashboardData();
+      })
+      .catch(() => {
+        setUser(null);
+        setAuthChecked(true);
+      });
+  }, [loadDashboardData]);
+
+  const streamState = useRealtimeStream({
+    enabled: Boolean(user),
+    onEvent: (env) => {
+      if (
+        env.type === "signal.created" ||
+        env.type === "signal.updated" ||
+        env.type === "notification.created" ||
+        env.type === "market.status"
+      ) {
+        void loadDashboardData();
+      }
+    },
+    onResyncRequired: () => {
+      void loadDashboardData();
+    },
+  });
+
+  const handleLogout = async () => {
+    try {
+      await logoutAccount();
+    } finally {
+      setUser(null);
+      window.location.assign("/login");
+    }
+  };
 
   return (
-    <AppShell marketScope={marketScope} onMarketScopeChange={setMarketScope}>
-      <div className="space-y-6">
-        {/* Header Banner */}
-        <section className="rounded-xl border border-border bg-card p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-xs font-mono text-accent">
-                <Layers className="h-3.5 w-3.5" />
-                <span>PHASE 3: PROJECT FOUNDATION SHELL</span>
-              </div>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                AI Trading Intelligence Control Plane
-              </h1>
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                Strict Signals-Only multi-market SaaS foundation. Live market feeds, authentication,
-                and the 11-skill workflow engine are wired in Phases 4–7 — zero synthetic or fake
-                market prices are displayed here.
+    <AppShell
+      activeNav={activeNav}
+      onNavChange={setActiveNav}
+      marketScope={marketScope}
+      onMarketScopeChange={setMarketScope}
+      user={user}
+      onLogout={handleLogout}
+      unreadNotifications={unreadCount}
+      streamState={streamState}
+      killSwitchEnabled={killSwitchEnabled}
+    >
+      {!authChecked ? (
+        <div className="py-24 text-center text-sm text-muted-foreground">
+          Verifying secure session...
+        </div>
+      ) : !user ? (
+        <section className="max-w-xl mx-auto my-12 rounded-2xl border border-border bg-card p-8 text-center space-y-5">
+          <div className="mx-auto h-12 w-12 rounded-xl bg-accent/15 text-accent flex items-center justify-center">
+            <Lock className="h-6 w-6" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              AI Trading Intelligence Platform
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Sign in with your subscriber account to access real-time India (NSE/BSE) &amp; US
+              (NASDAQ/NYSE) stock scans, risk-validated signals, TradingView charts, and AI analysis.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              href="/login"
+              className="px-5 py-2.5 rounded-lg bg-accent text-accent-foreground text-sm font-semibold hover:opacity-90"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="px-5 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted"
+            >
+              Create Account
+            </Link>
+          </div>
+          <div className="inline-flex items-center gap-2 text-xs text-emerald-400 font-mono pt-2">
+            <ShieldCheck className="h-4 w-4" />
+            <span>SIGNALS-ONLY • SINGLE ACTIVE SESSION ENFORCED</span>
+          </div>
+        </section>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => void loadDashboardData()}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              <span>{refreshing ? "Syncing..." : "Refresh Data"}</span>
+            </button>
+          </div>
+
+          {activeNav === "overview" || activeNav === "market-overview" ? (
+            <OverviewView
+              marketScope={marketScope}
+              marketStatuses={marketStatuses}
+              indices={indices}
+              signals={signals}
+              news={news}
+              performance={performance}
+              onSelectSignal={setSelectedSignal}
+              onOpenScanner={() => setActiveNav("opportunities")}
+            />
+          ) : activeNav === "scanner" ? (
+            <ScannerAndSignalsView
+              mode="scanner"
+              title="Multi-Market Stock Scanner"
+              marketScope={marketScope}
+              scannerHits={scannerHits}
+              signals={signals}
+              onSelectSignal={setSelectedSignal}
+            />
+          ) : activeNav === "opportunities" ||
+            activeNav === "india-market" ||
+            activeNav === "us-market" ? (
+            <ScannerAndSignalsView
+              mode="opportunities"
+              title={
+                activeNav === "india-market"
+                  ? "India Market (NSE/BSE) Signals"
+                  : activeNav === "us-market"
+                    ? "US Market (NASDAQ/NYSE) Signals"
+                    : "Trading Opportunities"
+              }
+              marketScope={marketScope}
+              scannerHits={scannerHits}
+              signals={signals}
+              onSelectSignal={setSelectedSignal}
+            />
+          ) : activeNav === "stock-analysis" ? (
+            <StockAnalysisView marketScope={marketScope} />
+          ) : activeNav === "news" ? (
+            <NewsAndDisclosuresView
+              marketScope={marketScope}
+              news={news}
+              disclosures={disclosures}
+              stockActNotice={stockActNotice}
+            />
+          ) : activeNav === "ai-analyst" ? (
+            <AIAnalystView marketScope={marketScope} />
+          ) : activeNav === "watchlist" ? (
+            <WatchlistView watchlists={watchlists} onRefresh={loadDashboardData} />
+          ) : activeNav === "notifications" ? (
+            <NotificationsView
+              notifications={notifications}
+              unreadCount={unreadCount}
+              prefs={notifPrefs}
+              onRefresh={loadDashboardData}
+            />
+          ) : activeNav === "settings" ? (
+            <AccountSettingsView
+              user={user}
+              userPrefs={userPrefs}
+              onRefresh={loadDashboardData}
+            />
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-8 text-center space-y-2">
+              <h2 className="text-lg font-semibold capitalize">{activeNav.replace("-", " ")}</h2>
+              <p className="text-xs text-muted-foreground">
+                Scheduled for Phase 8 (Trading Journal, Historical Performance &amp; Super Admin) /
+                Phase 9 (Razorpay &amp; Stripe Billing).
               </p>
             </div>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-mono">
-              <ShieldCheck className="h-4 w-4 shrink-0" />
-              <span>SIGNALS-ONLY POLICY ACTIVE</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Live Backend & Infrastructure Connectivity */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="flex items-center gap-2 font-medium text-foreground">
-                <Server className="h-4 w-4 text-accent" />
-                FastAPI Backend
-              </span>
-              {health ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <XCircle className="h-4 w-4 text-amber-400" />
-              )}
-            </div>
-            <div className="text-lg font-semibold font-mono tabular-nums">
-              {health ? health.status.toUpperCase() : "OFFLINE / NOT STARTED"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {health
-                ? `Mode: ${health.trading_mode} • Env: ${health.environment}`
-                : healthError ?? "Checking /api/v1/health..."}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="flex items-center gap-2 font-medium text-foreground">
-                <Database className="h-4 w-4 text-accent" />
-                PostgreSQL 16 (31 Tables)
-              </span>
-              {health?.dependencies.postgresql.ok ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <XCircle className="h-4 w-4 text-amber-400" />
-              )}
-            </div>
-            <div className="text-lg font-semibold font-mono tabular-nums">
-              {health?.dependencies.postgresql.ok ? "CONNECTED" : "AWAITING STARTUP"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Normalized multi-tenant schema + immutable signal trigger via Alembic.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border bg-card p-5 space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span className="flex items-center gap-2 font-medium text-foreground">
-                <Activity className="h-4 w-4 text-accent" />
-                Valkey / Redis & Celery
-              </span>
-              {health?.dependencies.valkey_redis.ok ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <XCircle className="h-4 w-4 text-amber-400" />
-              )}
-            </div>
-            <div className="text-lg font-semibold font-mono tabular-nums">
-              {health?.dependencies.valkey_redis.ok ? "CONNECTED" : "AWAITING STARTUP"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              5 isolated queues: india_market, us_market, analysis, notifications, maintenance.
-            </p>
-          </div>
-        </section>
-
-        {/* Independent Market Environment Cards */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {showIndia && (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold">India Market Environment</h2>
-                  <p className="text-xs text-muted-foreground">NSE • BSE • INR (₹) • Asia/Kolkata</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                  Adapter Pending (Phase 5)
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border text-xs">
-                <div>
-                  <div className="text-muted-foreground">Regular Session</div>
-                  <div className="font-mono tabular-nums mt-0.5">09:15 – 15:30 IST</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">5m Session Bars</div>
-                  <div className="font-mono tabular-nums mt-0.5">75 bars</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">Payments</div>
-                  <div className="font-mono mt-0.5">Razorpay (INR)</div>
-                </div>
-              </div>
-            </div>
           )}
+        </div>
+      )}
 
-          {showUS && (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold">US Market Environment</h2>
-                  <p className="text-xs text-muted-foreground">
-                    NASDAQ • NYSE • USD ($) • America/New_York
-                  </p>
-                </div>
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                  Adapter Pending (Phase 5)
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border text-xs">
-                <div>
-                  <div className="text-muted-foreground">Regular Session</div>
-                  <div className="font-mono tabular-nums mt-0.5">09:30 – 16:00 ET</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">5m Session Bars</div>
-                  <div className="font-mono tabular-nums mt-0.5">78 bars (DST auto)</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">Payments</div>
-                  <div className="font-mono mt-0.5">Stripe (USD)</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
+      {selectedSignal && (
+        <SignalDetailPanel signal={selectedSignal} onClose={() => setSelectedSignal(null)} />
+      )}
     </AppShell>
   );
 }

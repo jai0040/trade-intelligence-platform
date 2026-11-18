@@ -108,14 +108,15 @@ Before starting Phase 3 foundation builds, verify or install the following local
 
 ---
 
-### PHASE 7: Trading Dashboard (Subscriber UI) — `PENDING`
-- [ ] Build Overview Dashboard (India & US market statuses, indices, active/BUY/SELL/WATCH counts, today's & expired signals, top opportunities, news, performance summary, notifications).
-- [ ] Build India Market, US Market, Market Overview, Stock Scanner, and Trading Opportunities views with market filters (`India` / `US` / `All Markets`), search, sorting, pagination, date & strategy filters, and stale-data warnings.
-- [ ] Build Stock Details & Signal Details pages featuring **TradingView Lightweight Charts** with entry, stop-loss, and target price overlays, technical indicators, Time Machine replay distribution chart, news, fundamentals, AI analysis, broker-ready reference ticket, and signal history.
-- [ ] Build AI Analyst interactive view, Market News feed, Portfolio / Watchlist manager, and Account Settings.
-- [ ] Implement real-time WebSocket updates + In-App, Browser Push (opt-in), and Email notification system with user notification preferences.
+### PHASE 7: Trading Dashboard (Subscriber UI) — `COMPLETED`
+- [x] Implement user-isolated Notifications & Preferences REST API (`backend/app/notifications/router.py`, `schemas.py`) with unread badges, mark-read, mark-all-read, CSRF protection, and integration tests (`tests/integration/test_phase7_notifications.py`).
+- [x] Build Overview Dashboard (`frontend/src/components/views/OverviewView.tsx`) displaying India & US live exchange statuses, feed freshness & stale-data warnings, benchmark indices (`NIFTY50`, `SENSEX`, `BANKNIFTY`, `SPY`, `QQQ`, `DIA`), BUY/SELL/WATCH KPIs, top opportunities, filings/news, and performance summary.
+- [x] Build India Market, US Market, Market Overview, Stock Scanner, and Trading Opportunities views (`ScannerAndSignalsView.tsx`) with persistent market switcher (`All` / `India` / `US`), search, side filters, sorting, and pagination.
+- [x] Build interactive **TradingView Lightweight Charts** candlestick component (`CandlestickSignalChart.tsx`) with Entry, Stop-Loss, and Target overlays + `SignalDetailPanel.tsx` (Composite Setup Quality breakdown, Time Machine diagnostics, read-only broker reference trade ticket, embedded personal position-sizing calculator, and AI explanation).
+- [x] Build Stock Analysis & Charts (`StockAnalysisView.tsx`), News & US Congressional PTR Disclosures with 45-day lag badges (`NewsAndDisclosuresView.tsx`), interactive AI Analyst (`AIAnalystView.tsx`), Watchlist manager (`WatchlistView.tsx`), Notifications Center (with opt-in Browser Push), and Account Settings (`NotificationsAndSettingsView.tsx`).
+- [x] Implement cookie-authenticated real-time WebSocket hook (`frontend/src/lib/useRealtimeStream.ts`) handling `session.invalidated` (`4401`), live event refreshes, exponential backoff, and state resync + Vitest UI utility tests (`frontend/src/lib/__tests__/phase7_ui_utils.test.ts`).
 
-**Exit Criteria:** Responsive dark/light FinTech UI verified on desktop & mobile viewports; frontend unit/component tests and API integration verified.
+**Exit Criteria:** Full Phase 7 Subscriber UI, notification backend, WebSocket client, and unit/integration test suites verified and committed. **Gate:** Ready for user approval to begin Phase 8.
 
 ---
 

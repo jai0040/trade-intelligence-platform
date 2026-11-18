@@ -39,17 +39,265 @@ export interface UserProfile {
   last_login_at?: string | null;
 }
 
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
+export interface DataFreshness {
+  provider: string;
+  status: "HEALTHY" | "DEGRADED" | "DOWN";
+  last_quote_utc: string | null;
+  delay_seconds: number;
+  is_stale: boolean;
+  stale_reason?: string | null;
+}
+
+export interface MarketStatusItem {
+  market_code: "IN" | "US";
+  exchange_code: "NSE" | "BSE" | "NASDAQ" | "NYSE";
+  is_open: boolean;
+  session_phase: "PRE_OPEN" | "REGULAR" | "EARLY_CLOSE" | "CLOSED" | "HOLIDAY";
+  timezone: string;
+  local_time: string;
+  next_open_utc: string | null;
+  session_reason: string;
+  session_5m_bars: number;
+  data_freshness: DataFreshness;
+}
+
+export interface IndexSnapshot {
+  instrument_id: string;
+  market_code: "IN" | "US";
+  exchange_code: string;
+  symbol: string;
+  canonical_code: string;
+  company_name: string;
+  currency: "INR" | "USD";
+  last_price: string;
+  prev_close: string;
+  change: string;
+  change_pct: string;
+  quote_timestamp_utc: string;
+  source_provider: string;
+  is_delayed: boolean;
+  delay_seconds: number;
+  is_stale: boolean;
+}
+
+export interface InstrumentSummary {
+  instrument_id: string;
+  market_code: "IN" | "US";
+  exchange_code: "NSE" | "BSE" | "NASDAQ" | "NYSE";
+  symbol: string;
+  canonical_code: string;
+  company_name: string;
+  asset_type: string;
+  currency: "INR" | "USD";
+  tick_size: string;
+  lot_size: number;
+  sector?: string | null;
+}
+
+export interface OHLCVBarItem {
+  bar_start_utc: string;
+  bar_end_utc: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: number;
+  is_complete: boolean;
+}
+
+export interface InstrumentBarsResponse {
+  instrument: InstrumentSummary;
+  timeframe: "1m" | "5m" | "15m" | "1d";
+  source_provider: string;
+  bar_count: number;
+  data_freshness: DataFreshness;
+  bars: OHLCVBarItem[];
+}
+
+export interface ScannerHit {
+  instrument_id: string;
+  market_code: "IN" | "US";
+  exchange_code: string;
+  symbol: string;
+  canonical_code: string;
+  company_name: string;
+  currency: "INR" | "USD";
+  mode: string;
+  setup_type: string;
+  signal_bias: "BUY" | "SELL" | "WATCH";
+  level_price: string;
+  last_price: string;
+  atr_14: string;
+  sma_20: string;
+  rsi_14: string;
+  volume_ratio: string;
+  quote_timestamp_utc: string;
+  source_provider: string;
+}
+
+export interface TradingSignalItem {
+  id: string;
+  workflow_run_id: string;
+  instrument_id: string;
+  market_code: "IN" | "US";
+  exchange_code: string;
+  symbol: string;
+  canonical_code: string;
+  company_name: string;
+  currency: "INR" | "USD";
+  strategy: string;
+  signal_type: "BUY" | "SELL" | "WATCH";
+  entry_price: string;
+  stop_loss: string;
+  target_price: string;
+  risk_reward_ratio: string;
+  confidence_score: number;
+  confidence_label: string;
+  confidence_breakdown: {
+    label: string;
+    total_score: number;
+    components: Record<string, { score: number; max: number }>;
+  };
+  technical_indicators: Record<string, string>;
+  news_context: { count: number; headlines: string[] };
+  timemachine_summary?: Record<string, unknown> | null;
+  broker_ticket_preview?: Record<string, unknown> | null;
+  ai_reasoning?: string | null;
+  ai_explanation?: {
+    thesis: string;
+    key_levels_summary: string;
+    risk_factors: string[];
+    catalyst_notes: string;
+    disclaimer: string;
+  } | null;
+  risk_validation_status: "PASSED" | "REJECTED";
+  current_status: string;
+  data_source_provider: string;
+  data_as_of_utc: string;
+  generated_at_utc: string;
+  expires_at_utc: string;
+}
+
+export interface PaginatedResponse<T> {
+  page: number;
+  page_size: number;
+  total: number;
+  items: T[];
+}
+
+export interface MarketNewsItem {
+  instrument_id: string;
+  market_code: "IN" | "US";
+  symbol: string;
+  canonical_code: string;
+  source: string;
+  headline: string;
+  summary: string;
+  url: string;
+  tags: string[];
+  is_regulatory_filing: boolean;
+  filing_type: string | null;
+  published_at_utc: string;
+}
+
+export interface CongressDisclosureItem {
+  doc_id: string;
+  member_name: string;
+  district: string | null;
+  owner_type: string;
+  raw_ticker: string;
+  asset_description: string;
+  transaction_type: string;
+  amount_range: string;
+  trade_date: string;
+  filing_date: string;
+  disclosure_delay_days: number;
+  is_late_filing: boolean;
+  lag_notice: string;
+  source_pdf_url: string;
+}
+
+export interface WatchlistItem {
+  id: string;
+  watchlist_id: string;
+  instrument_id: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface Watchlist {
+  id: string;
+  name: string;
+  market_scope: "ALL" | "IN" | "US";
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+  items: WatchlistItem[];
+}
+
+export interface NotificationItem {
+  id: string;
+  category: string;
+  title: string;
+  body: string;
+  payload: Record<string, unknown>;
+  is_read: boolean;
+  read_at_utc: string | null;
+  created_at_utc: string;
+}
+
+export interface NotificationPreferences {
+  in_app_enabled: boolean;
+  browser_push_enabled: boolean;
+  email_enabled: boolean;
+  notify_new_signals: boolean;
+  notify_entry_hit: boolean;
+  notify_target_hit: boolean;
+  notify_stop_hit: boolean;
+  notify_signal_expiry: boolean;
+  notify_market_news: boolean;
+  notify_market_reports: boolean;
+  market_filter: "ALL" | "IN" | "US";
+  quiet_hours_json: Record<string, unknown>;
+  updated_at: string;
+}
+
+export interface UserPreferences {
+  default_market: "ALL" | "IN" | "US";
+  theme: "dark" | "light";
+  display_timezone: string;
+  default_budget_inr: string;
+  default_max_loss_inr: string;
+  default_budget_usd: string;
+  default_max_loss_usd: string;
+  updated_at: string;
+}
+
+export interface PerformanceSummary {
+  total_outcomes: number;
+  closed_trades: number;
+  target_hits: number;
+  stop_loss_hits: number;
+  expired_untriggered: number;
+  win_rate_pct: number;
+  avg_net_return_pct: number;
+  avg_realized_r_multiple: number;
+  methodology_version: string;
+  methodology_disclosure: string;
+}
+
+export function readCookieFromString(cookieStr: string, name: string): string | null {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  const match = cookieStr.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  return readCookieFromString(document.cookie, name);
+}
+
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = (options.method ?? "GET").toUpperCase();
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body !== undefined) {
@@ -97,39 +345,180 @@ export async function apiFetch<T>(
   return data as T;
 }
 
-export function registerAccount(payload: {
+// --- Auth ---
+export const registerAccount = (payload: {
   email: string;
   password: string;
   full_name: string;
   country_code: string;
-}): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/api/v1/auth/register", {
+}) =>
+  apiFetch<UserProfile>("/api/v1/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export function loginAccount(payload: {
-  email: string;
-  password: string;
-}): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/api/v1/auth/login", {
+export const loginAccount = (payload: { email: string; password: string }) =>
+  apiFetch<UserProfile>("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export function logoutAccount(): Promise<void> {
-  return apiFetch<void>("/api/v1/auth/logout", { method: "POST" });
-}
-
-export function fetchCurrentUser(): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/api/v1/auth/me");
-}
-
-export function requestPasswordReset(email: string): Promise<{ message: string }> {
-  return apiFetch<{ message: string }>("/api/v1/auth/password-reset/request", {
+export const logoutAccount = () => apiFetch<void>("/api/v1/auth/logout", { method: "POST" });
+export const fetchCurrentUser = () => apiFetch<UserProfile>("/api/v1/auth/me");
+export const requestPasswordReset = (email: string) =>
+  apiFetch<{ message: string }>("/api/v1/auth/password-reset/request", {
     method: "POST",
     body: JSON.stringify({ email }),
   });
-}
+
+// --- Markets & Instruments ---
+export const fetchMarketsStatus = () => apiFetch<MarketStatusItem[]>("/api/v1/markets/status");
+export const fetchMarketIndices = (market: "IN" | "US") =>
+  apiFetch<IndexSnapshot[]>(`/api/v1/markets/${market}/indices`);
+export const searchInstruments = (q: string, market: "ALL" | "IN" | "US" = "ALL") =>
+  apiFetch<InstrumentSummary[]>(
+    `/api/v1/instruments/search?q=${encodeURIComponent(q)}&market=${market}`
+  );
+export const fetchInstrumentBars = (
+  instrumentId: string,
+  timeframe: "1m" | "5m" | "15m" | "1d" = "5m",
+  limit = 150
+) =>
+  apiFetch<InstrumentBarsResponse>(
+    `/api/v1/instruments/${encodeURIComponent(instrumentId)}/bars?timeframe=${timeframe}&limit=${limit}`
+  );
+
+// --- Scanner, Signals, News, Disclosures, Sizing, AI ---
+export const fetchScannerResults = (params: {
+  market?: "ALL" | "IN" | "US";
+  mode?: "daily" | "orb" | "all";
+  setup?: string;
+  page?: number;
+  page_size?: number;
+}) => {
+  const sp = new URLSearchParams();
+  if (params.market) sp.set("market", params.market);
+  if (params.mode) sp.set("mode", params.mode);
+  if (params.setup) sp.set("setup", params.setup);
+  if (params.page) sp.set("page", String(params.page));
+  if (params.page_size) sp.set("page_size", String(params.page_size));
+  return apiFetch<PaginatedResponse<ScannerHit>>(`/api/v1/scanner/results?${sp.toString()}`);
+};
+
+export const fetchSignals = (params: {
+  market?: "ALL" | "IN" | "US";
+  signal_type?: string;
+  status?: string;
+  strategy?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}) => {
+  const sp = new URLSearchParams();
+  if (params.market) sp.set("market", params.market);
+  if (params.signal_type) sp.set("signal_type", params.signal_type);
+  if (params.status) sp.set("status", params.status);
+  if (params.strategy) sp.set("strategy", params.strategy);
+  if (params.search) sp.set("search", params.search);
+  if (params.page) sp.set("page", String(params.page));
+  if (params.page_size) sp.set("page_size", String(params.page_size));
+  return apiFetch<PaginatedResponse<TradingSignalItem>>(`/api/v1/signals?${sp.toString()}`);
+};
+
+export const fetchPerformanceSummary = (market: "ALL" | "IN" | "US" = "ALL") =>
+  apiFetch<PerformanceSummary>(`/api/v1/signals/performance/summary?market=${market}`);
+
+export const fetchMarketNews = (market: "ALL" | "IN" | "US" = "ALL", symbol?: string) => {
+  const sp = new URLSearchParams({ market });
+  if (symbol) sp.set("symbol", symbol);
+  return apiFetch<{ total: number; items: MarketNewsItem[] }>(`/api/v1/news?${sp.toString()}`);
+};
+
+export const fetchCongressDisclosures = () =>
+  apiFetch<{
+    market_code: string;
+    stock_act_notice: string;
+    total: number;
+    items: CongressDisclosureItem[];
+  }>("/api/v1/disclosures/congress");
+
+export const calculatePositionSize = (payload: {
+  market_code: "IN" | "US";
+  exchange_code: string;
+  symbol: string;
+  signal_type: "BUY" | "SELL";
+  entry_price: string;
+  stop_loss: string;
+  target_price: string;
+  capital_budget: string;
+  max_loss_amount: string;
+  lot_size?: number;
+}) =>
+  apiFetch<{
+    mode: string;
+    order_placed: boolean;
+    sizing: Record<string, string | number>;
+    risk_validation: {
+      status: string;
+      passed: boolean;
+      blocking_reasons: string[];
+      warnings: string[];
+      risk_fingerprint: string;
+    };
+    disclaimer: string;
+  }>("/api/v1/tools/position-size", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const queryAIAnalyst = (question: string, market_code: "ALL" | "IN" | "US" = "ALL") =>
+  apiFetch<{
+    provider: string;
+    question: string;
+    market_scope: string;
+    referenced_signal_ids: string[];
+    answer: string;
+    disclaimer: string;
+  }>("/api/v1/ai-analyst/query", {
+    method: "POST",
+    body: JSON.stringify({ question, market_code }),
+  });
+
+// --- Watchlists, Preferences & Notifications ---
+export const fetchWatchlists = () => apiFetch<Watchlist[]>("/api/v1/watchlists");
+export const createWatchlist = (name: string, market_scope: "ALL" | "IN" | "US") =>
+  apiFetch<Watchlist>("/api/v1/watchlists", {
+    method: "POST",
+    body: JSON.stringify({ name, market_scope }),
+  });
+export const deleteWatchlist = (watchlistId: string) =>
+  apiFetch<void>(`/api/v1/watchlists/${watchlistId}`, { method: "DELETE" });
+
+export const fetchNotifications = () =>
+  apiFetch<{ unread_count: number; total: number; items: NotificationItem[] }>(
+    "/api/v1/notifications"
+  );
+export const markNotificationRead = (notificationId: string) =>
+  apiFetch<NotificationItem>(`/api/v1/notifications/${notificationId}/read`, { method: "POST" });
+export const markAllNotificationsRead = () =>
+  apiFetch<{ marked_read: number }>("/api/v1/notifications/read-all", { method: "POST" });
+export const fetchNotificationPreferences = () =>
+  apiFetch<NotificationPreferences>("/api/v1/notifications/preferences");
+export const updateNotificationPreferences = (patch: Partial<NotificationPreferences>) =>
+  apiFetch<NotificationPreferences>("/api/v1/notifications/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+
+export const fetchUserPreferences = () =>
+  apiFetch<UserPreferences>("/api/v1/users/me/preferences");
+export const updateUserPreferences = (patch: Partial<UserPreferences>) =>
+  apiFetch<UserPreferences>("/api/v1/users/me/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+export const updateUserProfile = (patch: { full_name?: string; country_code?: string }) =>
+  apiFetch<UserProfile>("/api/v1/users/me/profile", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });

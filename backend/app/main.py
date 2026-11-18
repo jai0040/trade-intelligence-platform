@@ -21,6 +21,7 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.redis import build_redis_client
 from app.markets.router import router as markets_router
+from app.notifications.router import router as notifications_router
 from app.realtime.router import router as realtime_router
 from app.realtime.ws_manager import WebSocketManager
 from app.signals.router import router as signals_router
@@ -140,6 +141,7 @@ def create_app(
     app.include_router(subscriptions_router, prefix="/api/v1")
     app.include_router(markets_router, prefix="/api/v1")
     app.include_router(signals_router, prefix="/api/v1")
+    app.include_router(notifications_router, prefix="/api/v1")
     app.include_router(admin_router, prefix="/api/v1")
     app.include_router(realtime_router)
     return app
