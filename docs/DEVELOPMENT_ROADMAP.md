@@ -73,15 +73,16 @@ Before starting Phase 3 foundation builds, verify or install the following local
 
 ---
 
-### PHASE 5: Market Adapters & Data Provider Layer — `PENDING`
-- [ ] Implement canonical domain models (`Instrument`, `OHLCVBar`, `QuoteSnapshot`, `MarketSession`).
-- [ ] Implement `IndiaMarketAdapter` (`NSE`/`BSE`, `INR`, `Asia/Kolkata`, `09:15–15:30 IST`, 75 five-minute bars, Indian tick sizes, Indian ticker validation, NSE/BSE holiday calendar + Muhurat override).
-- [ ] Implement `USMarketAdapter` (`NASDAQ`/`NYSE`, `USD`, `America/New_York`, `09:30–16:00 ET`, 78 five-minute bars, DST, early closes, US ticker + ETF validation).
-- [ ] Implement `MarketDataProvider` interface + `MockMarketDataProvider` (rich deterministic offline fixtures for both India and US stocks/ETFs so tests run 24/7 outside market hours).
-- [ ] Implement pluggable provider adapters (commercial US provider interface + commercial India provider interface + clearly flagged local-dev-only fallback, disabled in production).
-- [ ] Implement quote freshness tracking, stale-data rejection guard, and `provider_status` health monitoring.
+### PHASE 5: Market Adapters & Data Provider Layer — `COMPLETED`
+- [x] Implement canonical immutable domain models (`Instrument`, `OHLCVBar`, `QuoteSnapshot`, `MarketSession`, `DataFreshnessReport`) with `Decimal` precision, UTC timestamp validation, and built-in IST/US-Eastern DST timezone support (`trading-engine/domain/`).
+- [x] Implement `IndiaMarketAdapter` (`NSE`/`BSE`, `INR`, `Asia/Kolkata`, `09:15–15:30 IST`, 75 five-minute bars, Indian tick sizes including sub-₹250 `₹0.01`, Indian ticker validation for `M&M`/`BAJAJ-AUTO`/`RELIANCE.NS`, NSE/BSE holiday calendar + Muhurat special session overrides) (`trading-engine/adapters/india/adapter.py`).
+- [x] Implement `USMarketAdapter` (`NASDAQ`/`NYSE`, `USD`, `America/New_York`, `09:30–16:00 ET`, 78 five-minute bars, exact DST transitions, algorithmic NYSE/NASDAQ holidays including Good Friday, 13:00 ET early closes = 42 bars, US ticker & `BRK.B` class-share handling) (`trading-engine/adapters/usa/adapter.py`).
+- [x] Implement `MarketDataProvider` interface + deterministic offline `MockMarketDataProvider` (curated India & US equities, ETFs, and indices with realistic daily & intraday bars for 24/7 testing + outage/delay simulation) (`trading-engine/data_providers/mock_provider.py`).
+- [x] Implement commercial provider interfaces (`CommercialIndiaDataProvider`, `CommercialUSDataProvider`), strictly local-dev-only `DevYahooDataProvider` hard-blocked in production, and factory enforcement (`trading-engine/data_providers/commercial_interfaces.py`, `factory.py`).
+- [x] Implement quote freshness validation, forming-bar filter, stale-data rejection (`StaleDataError`), `ProviderHealthMonitor`, and FastAPI market endpoints (`/api/v1/markets/status`, `/markets/{code}/indices`, `/instruments/search`, `/instruments/{id}/bars`, `/admin/providers/status`) (`backend/app/markets/`).
+- [x] Verify all calendar (DST, early closes, NSE/US holidays, Muhurat override), symbol mapping (`RELIANCE.NS`, `M&M`, `BRK.B`), tick rounding, and freshness/outage fail-safe tests (`tests/unit/test_phase5_markets_and_providers.py`, `tests/integration/test_phase5_market_endpoints.py`).
 
-**Exit Criteria:** Calendar tests (DST, early closes, NSE/US holidays), symbol mapping tests (`RELIANCE.NS`, `M&M`, `BRK.B`), and freshness/outage fail-safe tests all pass.
+**Exit Criteria:** All Phase 5 live unit tests passed (`ALL PHASE 3, 4 & 5 LIVE UNIT TESTS PASSED!`). **Gate:** Ready for user approval to begin Phase 6.
 
 ---
 
