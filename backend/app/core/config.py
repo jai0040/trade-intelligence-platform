@@ -34,8 +34,17 @@ class Settings(BaseSettings):
     session_cookie_secure: bool = False
     session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     session_ttl_hours: int = 24
+    password_reset_ttl_minutes: int = 30
     csrf_cookie_name: str = "tip_csrf"
     cors_allowed_origins: str = "http://localhost:3000"
+
+    # Rate Limiting
+    rate_limit_login_max: int = 10
+    rate_limit_login_window_seconds: int = 300
+    rate_limit_register_max: int = 5
+    rate_limit_register_window_seconds: int = 3600
+    rate_limit_reset_max: int = 5
+    rate_limit_reset_window_seconds: int = 900
 
     # Persistence & Broker
     database_url: str = "postgresql+psycopg://tip_app:replace_me@localhost:5432/trade_intelligence"

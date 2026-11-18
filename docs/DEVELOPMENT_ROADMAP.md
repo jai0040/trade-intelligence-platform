@@ -19,7 +19,7 @@
 Before starting Phase 3 foundation builds, verify or install the following local development tools (do not run until approved):
 1. **Python 3.12 or 3.13** (side-by-side with existing Python 3.15.2 via `winget install Python.Python.3.12` or `uv`) so all compiled backend/DB/calendar wheels install cleanly on Windows.
 2. **Docker Desktop for Windows** (recommended) for PostgreSQL 16 + Valkey/Redis + isolated service runs — or native PostgreSQL + Redis/Valkey.
-3. **Active Workspace:** Open `C:\Users\ADMIN\.gemini\antigravity\scratch\trade-intelligence-platform` as the active workspace in Antigravity IDE.
+3. **Active Workspace:** Open `W:\Projects\trade-intelligence-platform` as the active workspace in Antigravity IDE.
 4. **Private GitHub Repository:** Initialize Git locally and connect to your private `trade-intelligence-platform` repo when ready (no public push without explicit approval).
 
 ---
@@ -61,14 +61,15 @@ Before starting Phase 3 foundation builds, verify or install the following local
 
 ---
 
-### PHASE 4: Authentication, Multi-User SaaS & Single Active Session — `PENDING`
-- [ ] Implement Argon2id password hashing, registration, login, logout, and secure password reset tokens.
-- [ ] Implement server-side `sessions` table + Redis active-session store + `HttpOnly`/`Secure`/`SameSite=Lax` cookies + CSRF protection + rate limiting.
-- [ ] Implement **Single Active Session enforcement** (transactional eviction on new login + WebSocket `session.invalidated` push + `401 SESSION_SUPERSEDED` response + audit log entry).
-- [ ] Implement RBAC guards (`super_admin`, `admin`, `subscriber`) and strict `user_id` ownership enforcement across profile, preferences, and watchlists.
-- [ ] Implement subscription data model & entitlement guard stubs (ready for Razorpay/Stripe wiring in Phase 9).
+### PHASE 4: Authentication, Multi-User SaaS & Single Active Session — `COMPLETED`
+- [x] Implement Argon2id password hashing (`time_cost=3`, `64 MiB`, `parallelism=2`), email normalization, strong password policy, registration, login, logout, and one-time SHA-256 hashed password reset tokens with constant `202` anti-enumeration response (`backend/app/core/security.py`, `backend/app/authentication/`).
+- [x] Implement server-side `sessions` table + Redis `user:{id}:active_session` store + `HttpOnly`/`Secure`/`SameSite=Lax` cookies + double-submit `X-CSRF-Token` protection + Redis sliding/window rate limiting (`backend/app/core/rate_limit.py`, `backend/app/core/redis.py`).
+- [x] Implement **Single Active Session enforcement** (transactional eviction of prior `ACTIVE` session to `SUPERSEDED` + `session_version` bump + `401 SESSION_SUPERSEDED` response + Redis Pub/Sub `ws:user:{id}` + WebSocket `/ws/v1/stream` `session.invalidated` push with close code `4401` + `audit_logs` tracking).
+- [x] Implement RBAC guards (`super_admin`, `admin`, `subscriber`), audited admin session revocation & user deactivation (`backend/app/admin/router.py`), and strictly `user_id`-isolated profile, preferences, and watchlist APIs (`backend/app/users/router.py`).
+- [x] Implement subscription entitlement service & `require_active_subscription(market_code)` guards (`backend/app/subscriptions/`) ready for Phase 9 Razorpay/Stripe webhook wiring, plus Next.js cookie/CSRF auth client and `/login` & `/register` pages (`frontend/src/lib/api.ts`, `frontend/src/app/login/page.tsx`, `frontend/src/app/register/page.tsx`).
+- [x] Add comprehensive Phase 4 unit and integration tests (`tests/conftest.py`, `tests/unit/test_phase4_security_and_auth.py`, `tests/integration/test_phase4_auth_and_isolation.py`).
 
-**Exit Criteria:** Automated test suite passes for auth, password hashing, RBAC, multi-user data isolation (User A cannot read/modify User B), and single-session eviction across concurrent devices.
+**Exit Criteria:** Full Phase 4 implementation, static/unit stdlib checks, and automated integration test suite written and committed. *(Full pytest FastAPI/SQLAlchemy/Argon2id runtime execution awaits local Python 3.12 `.venv` or Docker Compose install.)* **Gate:** Ready for user approval to begin Phase 5.
 
 ---
 

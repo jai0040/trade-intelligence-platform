@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint with security headers, CORS allowlist, and clean lifespan."""
+"""FastAPI application entrypoint with security headers, CORS allowlist, routers, and clean lifespan."""
 
 from __future__ import annotations
 
@@ -6,29 +6,55 @@ import logging
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import Engine
+from sqlalchemy.orm import Session as DbSession, sessionmaker
 
+from app.admin.router import router as admin_router
 from app.api.v1.health import router as health_router
+from app.authentication.router import router as auth_router
 from app.core.config import Settings, get_settings
+from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.redis import build_redis_client
+from app.realtime.router import router as realtime_router
+from app.realtime.ws_manager import WebSocketManager
+from app.subscriptions.router import router as subscriptions_router
+from app.users.router import router as users_router
 from database.session import build_engine, build_session_factory
 
 logger = logging.getLogger("trade_intelligence.api")
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    db_engine: Engine | None = None,
+    db_session_factory: sessionmaker[DbSession] | None = None,
+    redis_client: Any | None = None,
+) -> FastAPI:
     cfg = settings or get_settings()
     configure_logging(cfg.log_level)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        owns_engine = db_engine is None and db_session_factory is None
+        owns_redis = redis_client is None
+
         app.state.settings = cfg
-        app.state.db_engine = build_engine(cfg.database_url)
-        app.state.db_session_factory = build_session_factory(app.state.db_engine)
-        app.state.redis_client = build_redis_client(cfg.redis_url)
+        if not hasattr(app.state, "ws_manager") or app.state.ws_manager is None:
+            app.state.ws_manager = WebSocketManager()
+        app.state.db_engine = db_engine or build_engine(cfg.database_url)
+        app.state.db_session_factory = db_session_factory or build_session_factory(
+            app.state.db_engine
+        )
+        app.state.redis_client = (
+            redis_client if redis_client is not None else build_redis_client(cfg.redis_url)
+        )
+
         logger.info(
             "Backend starting",
             extra={
@@ -43,18 +69,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             yield
         finally:
-            app.state.db_engine.dispose()
-            app.state.redis_client.close()
+            if owns_engine and app.state.db_engine is not None:
+                app.state.db_engine.dispose()
+            if owns_redis and app.state.redis_client is not None:
+                close_fn = getattr(app.state.redis_client, "close", None)
+                if callable(close_fn):
+                    close_fn()
             logger.info("Backend shut down cleanly")
 
     app = FastAPI(
         title="AI Trading Intelligence SaaS Platform API",
-        version="0.1.0",
-        description="Multi-Market (India NSE/BSE & US NASDAQ/NYSE) Signals-Only Trading Intelligence Platform.",
+        version="0.2.0",
+        description=(
+            "Multi-Market (India NSE/BSE & US NASDAQ/NYSE) Signals-Only "
+            "Trading Intelligence SaaS Platform."
+        ),
         docs_url="/api/docs" if cfg.app_env != "production" else None,
         redoc_url="/api/redoc" if cfg.app_env != "production" else None,
         lifespan=lifespan,
     )
+
+    register_exception_handlers(app)
 
     app.add_middleware(
         CORSMiddleware,
@@ -76,10 +111,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["X-Trading-Mode"] = cfg.trading_mode
         if cfg.app_env == "production":
-            response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains; preload"
+            )
         return response
 
     app.include_router(health_router, prefix="/api/v1")
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(users_router, prefix="/api/v1")
+    app.include_router(subscriptions_router, prefix="/api/v1")
+    app.include_router(admin_router, prefix="/api/v1")
+    app.include_router(realtime_router)
     return app
 
 

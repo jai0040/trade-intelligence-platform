@@ -9,7 +9,7 @@ This guide explains how to boot the full Phase 3 stack locally on Windows using 
 Copy `.env.example` to `.env` (never commit `.env`):
 
 ```powershell
-Set-Location C:\Users\ADMIN\.gemini\antigravity\scratch\trade-intelligence-platform
+Set-Location W:\Projects\trade-intelligence-platform
 Copy-Item .env.example .env
 ```
 

@@ -69,6 +69,7 @@ class Session(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
             "user_id",
             unique=True,
             postgresql_where=text("status = 'ACTIVE'"),
+            sqlite_where=text("status = 'ACTIVE'"),
         ),
         Index("ix_sessions_user_created", "user_id", "created_at"),
     )
