@@ -44,7 +44,7 @@ _FIXTURE_SPECS: list[dict[str, Any]] = [
         "name": "Reliance Industries Limited",
         "asset_type": AssetType.EQUITY.value,
         "sector": "Energy",
-        "base_price": Decimal("2940.00"),
+        "base_price": Decimal("1375.00"),
         "tick": Decimal("0.05"),
         "pattern": "breakout",
         "base_vol": 420_000,
