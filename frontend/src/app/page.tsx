@@ -310,14 +310,7 @@ export default function TradingIntelligenceDashboardPage() {
             <SuperAdminView />
           ) : activeNav === "subscription" ? (
             <SubscriptionBillingView user={user} onRefresh={loadDashboardData} />
-          ) : (
-            <div className="rounded-xl border border-border bg-card p-8 text-center space-y-2">
-              <h2 className="text-lg font-semibold capitalize">{activeNav.replace("-", " ")}</h2>
-              <p className="text-xs text-muted-foreground">
-                Section content ready.
-              </p>
-            </div>
-          )}
+          ) : null}
         </div>
       )}
 
