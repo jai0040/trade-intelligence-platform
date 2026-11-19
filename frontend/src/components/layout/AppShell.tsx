@@ -32,6 +32,7 @@ import {
 import type { UserProfile } from "@/lib/api";
 import type { StreamConnectionState } from "@/lib/useRealtimeStream";
 import { cn, formatMarketClock } from "@/lib/utils";
+import { ComplianceModal } from "@/components/legal/ComplianceModal";
 
 export type MarketScope = "ALL" | "IN" | "US";
 
@@ -107,6 +108,7 @@ export function AppShell({
 }: AppShellProps) {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [complianceModalOpen, setComplianceModalOpen] = useState(false);
   const [clocks, setClocks] = useState<{ ist: string; et: string }>({
     ist: "--:--:--",
     et: "--:--:--",
@@ -205,6 +207,13 @@ export function AppShell({
           <p className="text-[10px] leading-relaxed">
             No live broker execution. Charts powered by TradingView Lightweight Charts (Apache-2.0).
           </p>
+          <button
+            type="button"
+            onClick={() => setComplianceModalOpen(true)}
+            className="text-[10px] text-accent hover:underline flex items-center gap-1 font-medium pt-0.5"
+          >
+            Legal &amp; Compliance Disclosures
+          </button>
         </div>
       </aside>
 
@@ -383,6 +392,11 @@ export function AppShell({
 
         <main className="flex-1 p-4 lg:p-6 max-w-7xl w-full mx-auto">{children}</main>
       </div>
+
+      <ComplianceModal
+        isOpen={complianceModalOpen}
+        onClose={() => setComplianceModalOpen(false)}
+      />
     </div>
   );
 }
