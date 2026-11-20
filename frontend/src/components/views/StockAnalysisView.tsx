@@ -1,8 +1,19 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { LineChart, Search } from "lucide-react";
-import { CandlestickSignalChart } from "@/components/charts/CandlestickSignalChart";
+const CandlestickSignalChart = dynamic(
+  () => import("@/components/charts/CandlestickSignalChart").then((m) => m.CandlestickSignalChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] flex items-center justify-center text-xs text-muted-foreground animate-pulse">
+        Loading interactive chart...
+      </div>
+    ),
+  }
+);
 import type { MarketScope } from "@/components/layout/AppShell";
 import {
   fetchInstrumentBars,

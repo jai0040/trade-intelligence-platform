@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   AlertCircle,
   Bot,
@@ -11,7 +12,17 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { CandlestickSignalChart } from "@/components/charts/CandlestickSignalChart";
+const CandlestickSignalChart = dynamic(
+  () => import("@/components/charts/CandlestickSignalChart").then((m) => m.CandlestickSignalChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[340px] flex items-center justify-center text-xs text-muted-foreground animate-pulse">
+        Loading interactive chart...
+      </div>
+    ),
+  }
+);
 import {
   calculatePositionSize,
   fetchInstrumentBars,
