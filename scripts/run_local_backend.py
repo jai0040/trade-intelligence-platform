@@ -142,7 +142,7 @@ def _normalize_sqlite_server_defaults(metadata: Any) -> None:
 
 
 def seed_database(session_factory: Any) -> None:
-    from app.core.security import hash_password
+    from app.core.security import hash_password, password_needs_rehash
     from database.models import Base
     from database.models.billing import SubscriptionPlan
     from database.models.identity import Role, User
@@ -215,6 +215,9 @@ def seed_database(session_factory: Any) -> None:
                     is_email_verified=True,
                 )
                 db.add(admin_user)
+        else:
+            if password_needs_rehash(admin_user.password_hash):
+                admin_user.password_hash = hash_password("AdminPass123!")
 
         db.commit()
     logger.info("Database seeding complete.")

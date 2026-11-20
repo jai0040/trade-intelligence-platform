@@ -117,7 +117,7 @@ def create_app(
         allow_origins=cfg.cors_origins_list,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "X-CSRF-Token", "X-Request-ID"],
+        allow_headers=["*"],
     )
 
     @app.middleware("http")

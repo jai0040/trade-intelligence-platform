@@ -36,7 +36,9 @@ class Settings(BaseSettings):
     session_ttl_hours: int = 24
     password_reset_ttl_minutes: int = 30
     csrf_cookie_name: str = "tip_csrf"
-    cors_allowed_origins: str = "http://localhost:3000"
+    cors_allowed_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+    )
 
     # Rate Limiting
     rate_limit_login_max: int = 10
