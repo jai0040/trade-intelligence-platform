@@ -10,8 +10,10 @@ import {
   Copy,
   FileText,
   ShieldCheck,
+  Sparkles,
   X,
 } from "lucide-react";
+import { TradingViewWidget } from "@/components/charts/TradingViewWidget";
 const CandlestickSignalChart = dynamic(
   () => import("@/components/charts/CandlestickSignalChart").then((m) => m.CandlestickSignalChart),
   {
@@ -37,6 +39,7 @@ interface SignalDetailPanelProps {
 }
 
 export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
+  const [chartView, setChartView] = useState<"tradingview" | "levels">("tradingview");
   const [timeframe, setTimeframe] = useState<"1d" | "15m" | "5m">("5m");
   const [bars, setBars] = useState<OHLCVBarItem[]>([]);
   const [barsLoading, setBarsLoading] = useState(true);
@@ -180,34 +183,75 @@ export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
           </div>
         </div>
 
-        {/* TradingView Lightweight Candlestick Chart */}
+        {/* Real-time TradingView & Levels Chart */}
         <section className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h3 className="text-sm font-semibold">Interactive Price &amp; Level Chart</h3>
+              <h3 className="text-sm font-semibold">Interactive Chart &amp; Levels</h3>
               <p className="text-[11px] text-muted-foreground">
-                Completed bars only • Entry, Stop-Loss &amp; Target overlays
+                {chartView === "tradingview"
+                  ? "TradingView live cloud feed with real-time indicators"
+                  : "Completed bars with Entry, Stop-Loss & Target overlays"}
               </p>
             </div>
-            <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
-              {(["5m", "15m", "1d"] as const).map((tf) => (
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
                 <button
-                  key={tf}
                   type="button"
-                  onClick={() => setTimeframe(tf)}
+                  onClick={() => setChartView("tradingview")}
                   className={cn(
-                    "px-2.5 py-1 rounded",
-                    timeframe === tf
-                      ? "bg-card text-foreground shadow-sm"
+                    "px-2.5 py-1 rounded flex items-center gap-1 transition-colors font-medium",
+                    chartView === "tradingview"
+                      ? "bg-accent text-accent-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {tf}
+                  <Sparkles className="h-3 w-3" />
+                  TradingView Live
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setChartView("levels")}
+                  className={cn(
+                    "px-2.5 py-1 rounded transition-colors font-medium",
+                    chartView === "levels"
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Signals &amp; Levels
+                </button>
+              </div>
+
+              {chartView === "levels" && (
+                <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
+                  {(["5m", "15m", "1d"] as const).map((tf) => (
+                    <button
+                      key={tf}
+                      type="button"
+                      onClick={() => setTimeframe(tf)}
+                      className={cn(
+                        "px-2.5 py-1 rounded",
+                        timeframe === tf
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          {barsLoading ? (
+
+          {chartView === "tradingview" ? (
+            <TradingViewWidget
+              symbol={signal.canonical_code}
+              height={440}
+              interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
+            />
+          ) : barsLoading ? (
             <div className="h-[340px] flex items-center justify-center text-xs text-muted-foreground">
               Loading completed OHLCV bars...
             </div>

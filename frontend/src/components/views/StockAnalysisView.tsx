@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { LineChart, Search } from "lucide-react";
+import { LineChart, Search, Sparkles } from "lucide-react";
+import { TradingViewWidget } from "@/components/charts/TradingViewWidget";
 const CandlestickSignalChart = dynamic(
   () => import("@/components/charts/CandlestickSignalChart").then((m) => m.CandlestickSignalChart),
   {
@@ -31,6 +32,7 @@ export function StockAnalysisView({ marketScope }: StockAnalysisViewProps) {
   const [query, setQuery] = useState("RELIANCE");
   const [results, setResults] = useState<InstrumentSummary[]>([]);
   const [selected, setSelected] = useState<InstrumentSummary | null>(null);
+  const [chartEngine, setChartEngine] = useState<"tradingview" | "signals">("tradingview");
   const [timeframe, setTimeframe] = useState<"1d" | "15m" | "5m">("5m");
   const [bars, setBars] = useState<OHLCVBarItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,30 +137,74 @@ export function StockAnalysisView({ marketScope }: StockAnalysisViewProps) {
         <section className="rounded-xl border border-border bg-card p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold font-mono">{selected.canonical_code}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold font-mono">{selected.canonical_code}</h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400">
+                  {selected.market_code === "IN" ? "NSE/BSE India" : "US Market"}
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 {selected.company_name} • {selected.asset_type} • Tick {selected.tick_size}{" "}
                 {selected.currency} • {selected.sector ?? "Equity"}
               </p>
             </div>
-            <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
-              {(["5m", "15m", "1d"] as const).map((tf) => (
+
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
                 <button
-                  key={tf}
                   type="button"
-                  onClick={() => setTimeframe(tf)}
+                  onClick={() => setChartEngine("tradingview")}
                   className={cn(
-                    "px-2.5 py-1 rounded",
-                    timeframe === tf ? "bg-card text-foreground" : "text-muted-foreground"
+                    "px-3 py-1 rounded flex items-center gap-1.5 transition-colors font-medium",
+                    chartEngine === "tradingview"
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  {tf}
+                  <Sparkles className="h-3.5 w-3.5" />
+                  TradingView Live
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setChartEngine("signals")}
+                  className={cn(
+                    "px-3 py-1 rounded transition-colors font-medium",
+                    chartEngine === "signals"
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Quant Signals Chart
+                </button>
+              </div>
+
+              {chartEngine === "signals" && (
+                <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
+                  {(["5m", "15m", "1d"] as const).map((tf) => (
+                    <button
+                      key={tf}
+                      type="button"
+                      onClick={() => setTimeframe(tf)}
+                      className={cn(
+                        "px-2.5 py-1 rounded",
+                        timeframe === tf ? "bg-card text-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {loading ? (
+          {chartEngine === "tradingview" ? (
+            <TradingViewWidget
+              symbol={selected.canonical_code}
+              height={560}
+              interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
+            />
+          ) : loading ? (
             <div className="h-[380px] flex items-center justify-center text-xs text-muted-foreground">
               Loading completed bars...
             </div>
