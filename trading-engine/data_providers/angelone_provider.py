@@ -31,7 +31,7 @@ from domain.models import (
 
 logger = logging.getLogger("trade_intelligence.angelone")
 
-ANGELONE_BASE_URL = "https://apiconnect.angelbroking.com"
+ANGELONE_BASE_URL = "https://apiconnect.angelone.in"
 
 # Representative mapping of top liquid NSE equities to AngelOne symbol tokens
 ANGELONE_NSE_SCRIP_TOKENS: dict[str, dict[str, Any]] = {
@@ -107,7 +107,7 @@ class AngelOneSmartAPIProvider(MarketDataProvider):
             "X-UserType": "USER",
             "X-SourceID": "WEB",
             "X-ClientLocalIP": "127.0.0.1",
-            "X-ClientPublicIP": "106.193.147.98",
+            "X-ClientPublicIP": "152.58.35.168",
             "X-MACAddress": "fe80::216e:6507:4b9c:9045",
             "X-PrivateKey": self.api_key,
             "Authorization": f"Bearer {token}",
@@ -126,14 +126,23 @@ class AngelOneSmartAPIProvider(MarketDataProvider):
                 "AngelOne credentials (ANGELONE_API_KEY, ANGELONE_CLIENT_CODE, ANGELONE_PIN) are not configured.",
             )
 
-        totp = generate_totp_code(self.totp_secret) if self.totp_secret else ""
+        cleaned_totp = self.totp_secret.strip()
+        if len(cleaned_totp) == 6 and cleaned_totp.isdigit():
+            totp = cleaned_totp
+        elif cleaned_totp:
+            try:
+                totp = generate_totp_code(cleaned_totp)
+            except Exception:
+                totp = ""
+        else:
+            totp = ""
         payload = {
             "clientcode": self.client_code,
             "password": self.pin,
             "totp": totp,
         }
 
-        url = f"{ANGELONE_BASE_URL}/rest/auth/partner/v1/loginByPassword"
+        url = f"{ANGELONE_BASE_URL}/rest/auth/angelbroking/user/v1/loginByPassword"
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
@@ -143,7 +152,7 @@ class AngelOneSmartAPIProvider(MarketDataProvider):
                 "X-UserType": "USER",
                 "X-SourceID": "WEB",
                 "X-ClientLocalIP": "127.0.0.1",
-                "X-ClientPublicIP": "106.193.147.98",
+                "X-ClientPublicIP": "152.58.35.168",
                 "X-MACAddress": "fe80::216e:6507:4b9c:9045",
                 "X-PrivateKey": self.api_key,
             },
