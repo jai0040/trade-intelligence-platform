@@ -261,7 +261,7 @@ _FIXTURE_SPECS: list[dict[str, Any]] = [
         "name": "Advanced Micro Devices, Inc.",
         "asset_type": AssetType.EQUITY.value,
         "sector": "Semiconductors",
-        "base_price": Decimal("152.40"),
+        "base_price": Decimal("452.40"),
         "tick": Decimal("0.01"),
         "pattern": "breakdown",
         "base_vol": 1_250_000,

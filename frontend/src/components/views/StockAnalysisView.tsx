@@ -42,7 +42,7 @@ export function StockAnalysisView({ marketScope }: StockAnalysisViewProps) {
     try {
       const list = await searchInstruments(q.trim(), marketScope);
       setResults(list);
-      if (list.length > 0 && !selected) {
+      if (list.length > 0) {
         setSelected(list[0]);
       }
     } catch {
