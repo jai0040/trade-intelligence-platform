@@ -247,8 +247,9 @@ export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
 
           {chartView === "tradingview" ? (
             <TradingViewWidget
+              key={signal.canonical_code}
               symbol={signal.canonical_code}
-              height={440}
+              height={460}
               interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
             />
           ) : barsLoading ? (

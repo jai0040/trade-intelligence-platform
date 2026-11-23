@@ -178,30 +178,29 @@ export function StockAnalysisView({ marketScope }: StockAnalysisViewProps) {
                 </button>
               </div>
 
-              {chartEngine === "signals" && (
-                <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
-                  {(["5m", "15m", "1d"] as const).map((tf) => (
-                    <button
-                      key={tf}
-                      type="button"
-                      onClick={() => setTimeframe(tf)}
-                      className={cn(
-                        "px-2.5 py-1 rounded",
-                        timeframe === tf ? "bg-card text-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      {tf}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
+                {(["5m", "15m", "1d"] as const).map((tf) => (
+                  <button
+                    key={tf}
+                    type="button"
+                    onClick={() => setTimeframe(tf)}
+                    className={cn(
+                      "px-2.5 py-1 rounded",
+                      timeframe === tf ? "bg-card text-foreground shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {chartEngine === "tradingview" ? (
             <TradingViewWidget
+              key={selected.canonical_code}
               symbol={selected.canonical_code}
-              height={560}
+              height={580}
               interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
             />
           ) : loading ? (
