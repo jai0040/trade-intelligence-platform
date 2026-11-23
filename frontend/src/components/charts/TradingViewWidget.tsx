@@ -104,8 +104,6 @@ export const TradingViewWidget = memo(function TradingViewWidget({
           border: "none",
         }}
         allowFullScreen
-        allowTransparency
-        scrolling="no"
       />
     </div>
   );
