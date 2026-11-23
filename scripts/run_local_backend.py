@@ -257,14 +257,27 @@ def run_server() -> None:
     seed_database(session_factory)
     fake_redis = FakeRedis()
 
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+
+    import os
+    env_provider_in = os.getenv("MARKET_DATA_PROVIDER_IN")
+    if not env_provider_in:
+        env_provider_in = "angelone" if (os.getenv("ANGELONE_API_KEY") or os.getenv("ANGELONE_JWT_TOKEN")) else "mock"
+
     settings = Settings(
         app_env="development",
         trading_mode="SIGNALS_ONLY",
         session_cookie_secure=False,
         session_cookie_samesite="lax",
         cors_allowed_origins="http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000",
-        market_data_provider_in="mock",
-        market_data_provider_us="mock",
+        market_data_provider_in=env_provider_in,
+        market_data_provider_us=os.getenv("MARKET_DATA_PROVIDER_US", "mock"),
+        angelone_api_key=os.getenv("ANGELONE_API_KEY", ""),
+        angelone_client_code=os.getenv("ANGELONE_CLIENT_CODE", ""),
+        angelone_pin=os.getenv("ANGELONE_PIN", ""),
+        angelone_totp_secret=os.getenv("ANGELONE_TOTP_SECRET", ""),
+        angelone_jwt_token=os.getenv("ANGELONE_JWT_TOKEN", ""),
     )
 
     app = create_app(

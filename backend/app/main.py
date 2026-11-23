@@ -62,7 +62,13 @@ def create_app(
         app.state.signals_hub = SignalsEngineHub(llm_provider=cfg.llm_provider)
         app.state.market_providers = market_providers or {
             MarketCode.IN: build_market_data_provider(
-                cfg.market_data_provider_in, app_env=cfg.app_env
+                cfg.market_data_provider_in,
+                app_env=cfg.app_env,
+                api_key=cfg.angelone_api_key,
+                client_code=cfg.angelone_client_code,
+                pin=cfg.angelone_pin,
+                totp_secret=cfg.angelone_totp_secret,
+                jwt_token=cfg.angelone_jwt_token,
             ),
             MarketCode.US: build_market_data_provider(
                 cfg.market_data_provider_us, app_env=cfg.app_env

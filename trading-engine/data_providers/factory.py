@@ -27,6 +27,9 @@ def build_market_data_provider(
     provider: MarketDataProvider
     if code == "mock":
         provider = MockMarketDataProvider(**kwargs)
+    elif code in {"angelone", "smartapi"}:
+        from data_providers.angelone_provider import AngelOneSmartAPIProvider
+        provider = AngelOneSmartAPIProvider(**kwargs)
     elif code in {"licensed_india", "kite", "upstox", "truedata"}:
         provider = CommercialIndiaDataProvider(**kwargs)
     elif code in {"licensed_us", "polygon", "databento", "alpaca"}:

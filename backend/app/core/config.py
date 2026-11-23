@@ -60,6 +60,13 @@ class Settings(BaseSettings):
     quote_stale_threshold_seconds: int = 900
     signal_stale_threshold_seconds: int = 300
 
+    # AngelOne SmartAPI Credentials
+    angelone_api_key: str = ""
+    angelone_client_code: str = ""
+    angelone_pin: str = ""
+    angelone_totp_secret: str = ""
+    angelone_jwt_token: str = ""
+
     # AI Analyst
     llm_provider: str = "mock"
 
