@@ -265,31 +265,53 @@ export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
                   </div>
                 </div>
 
-                {chartView === "tradingview" ? (
-                  <TradingViewWidget
-                    key={signal.canonical_code}
-                    symbol={signal.canonical_code}
-                    height={460}
-                    interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
-                  />
-                ) : barsLoading ? (
-                  <div className="h-[340px] flex items-center justify-center text-xs text-muted-foreground">
-                    Loading completed OHLCV bars...
+                <div className="relative rounded-xl overflow-hidden">
+                  {/* Floating Level HUD overlay on top of chart */}
+                  <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 flex-wrap pointer-events-none">
+                    <div className="bg-[#131722]/90 backdrop-blur-md border border-sky-500/50 px-2.5 py-1 rounded-md text-[11px] font-mono shadow-md flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                      <span className="text-muted-foreground text-[10px] font-semibold">ENTRY:</span>
+                      <span className="text-sky-300 font-bold">{formatCurrencyPrice(signal.entry_price, signal.currency)}</span>
+                    </div>
+                    <div className="bg-[#131722]/90 backdrop-blur-md border border-red-500/50 px-2.5 py-1 rounded-md text-[11px] font-mono shadow-md flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                      <span className="text-muted-foreground text-[10px] font-semibold">STOP:</span>
+                      <span className="text-red-300 font-bold">{formatCurrencyPrice(signal.stop_loss, signal.currency)}</span>
+                    </div>
+                    <div className="bg-[#131722]/90 backdrop-blur-md border border-emerald-500/50 px-2.5 py-1 rounded-md text-[11px] font-mono shadow-md flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      <span className="text-muted-foreground text-[10px] font-semibold">TARGET:</span>
+                      <span className="text-emerald-300 font-bold">{formatCurrencyPrice(signal.target_price, signal.currency)}</span>
+                    </div>
                   </div>
-                ) : barsError ? (
-                  <div className="h-[200px] flex items-center justify-center gap-2 text-xs text-amber-400">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>{barsError}</span>
-                  </div>
-                ) : (
-                  <CandlestickSignalChart
-                    bars={bars}
-                    entryPrice={Number(signal.entry_price)}
-                    stopLoss={Number(signal.stop_loss)}
-                    targetPrice={Number(signal.target_price)}
-                    currency={signal.currency}
-                  />
-                )}
+
+                  {chartView === "tradingview" ? (
+                    <TradingViewWidget
+                      key={signal.canonical_code}
+                      symbol={signal.canonical_code}
+                      height={460}
+                      interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
+                    />
+                  ) : barsLoading ? (
+                    <div className="h-[460px] flex items-center justify-center text-xs text-muted-foreground bg-[#131722] rounded-xl border border-border">
+                      Loading completed OHLCV bars...
+                    </div>
+                  ) : barsError ? (
+                    <div className="h-[460px] flex items-center justify-center gap-2 text-xs text-amber-400 bg-[#131722] rounded-xl border border-border">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>{barsError}</span>
+                    </div>
+                  ) : (
+                    <CandlestickSignalChart
+                      bars={bars}
+                      entryPrice={Number(signal.entry_price)}
+                      stopLoss={Number(signal.stop_loss)}
+                      targetPrice={Number(signal.target_price)}
+                      currency={signal.currency}
+                      height={460}
+                    />
+                  )}
+                </div>
                 
                 <div className="text-[11px] text-muted-foreground bg-muted/30 rounded-lg px-3 py-2 flex items-center justify-between">
                   <span>
