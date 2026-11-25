@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Lock, RefreshCw, ShieldCheck } from "lucide-react";
+import dynamic from "next/dynamic";
 import { AppShell, type MarketScope, type NavSectionId } from "@/components/layout/AppShell";
 import { SignalDetailPanel } from "@/components/signals/SignalDetailPanel";
 import { AIAnalystView } from "@/components/views/AIAnalystView";
@@ -17,8 +18,19 @@ import { PerformanceView } from "@/components/views/PerformanceView";
 import { ScannerAndSignalsView } from "@/components/views/ScannerAndSignalsView";
 import { StockAnalysisView } from "@/components/views/StockAnalysisView";
 import { SubscriptionBillingView } from "@/components/views/SubscriptionBillingView";
-import { SuperAdminView } from "@/components/views/SuperAdminView";
 import { WatchlistView } from "@/components/views/WatchlistView";
+
+const SuperAdminView = dynamic(
+  () => import("@/components/views/SuperAdminView").then((m) => m.SuperAdminView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-8 text-center text-sm text-muted-foreground animate-pulse">
+        Loading Super Admin Control Plane...
+      </div>
+    ),
+  }
+);
 import {
   API_BASE_URL,
   fetchCongressDisclosures,
