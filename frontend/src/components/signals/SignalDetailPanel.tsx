@@ -39,7 +39,7 @@ interface SignalDetailPanelProps {
 }
 
 export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
-  const [chartView, setChartView] = useState<"tradingview" | "levels">("tradingview");
+  const [chartView, setChartView] = useState<"tradingview" | "levels">("levels");
   const [timeframe, setTimeframe] = useState<"1d" | "15m" | "5m">("5m");
   const [bars, setBars] = useState<OHLCVBarItem[]>([]);
   const [barsLoading, setBarsLoading] = useState(true);
@@ -211,37 +211,37 @@ export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
                       Interactive Chart &amp; Levels
                     </h3>
                     <p className="text-[11px] text-muted-foreground">
-                      {chartView === "tradingview"
-                        ? "TradingView live cloud feed with real-time indicators"
-                        : "Completed bars with Entry, Stop-Loss & Target overlays"}
+                      {chartView === "levels"
+                        ? "Completed bars with Entry, Stop-Loss & Target overlays"
+                        : "TradingView live cloud feed with real-time exchange candles"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs font-mono">
                       <button
                         type="button"
+                        onClick={() => setChartView("levels")}
+                        className={cn(
+                          "px-2.5 py-1 rounded transition-colors font-medium flex items-center gap-1",
+                          chartView === "levels"
+                            ? "bg-accent text-accent-foreground shadow-sm font-semibold"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Signals &amp; Levels
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setChartView("tradingview")}
                         className={cn(
                           "px-2.5 py-1 rounded flex items-center gap-1 transition-colors font-medium",
                           chartView === "tradingview"
-                            ? "bg-accent text-accent-foreground shadow-sm"
+                            ? "bg-accent text-accent-foreground shadow-sm font-semibold"
                             : "text-muted-foreground hover:text-foreground"
                         )}
                       >
                         <Sparkles className="h-3 w-3" />
                         TradingView Live
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setChartView("levels")}
-                        className={cn(
-                          "px-2.5 py-1 rounded transition-colors font-medium",
-                          chartView === "levels"
-                            ? "bg-accent text-accent-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        Signals &amp; Levels
                       </button>
                     </div>
 
@@ -265,29 +265,36 @@ export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
                   </div>
                 </div>
 
-                <div className="relative rounded-xl overflow-hidden">
-                  {/* Floating Level HUD overlay on top of chart */}
-                  <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 flex-wrap pointer-events-none">
-                    <div className="bg-[#131722]/90 backdrop-blur-md border border-sky-500/50 px-2.5 py-1 rounded-md text-[11px] font-mono shadow-md flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-sky-400"></span>
-                      <span className="text-muted-foreground text-[10px] font-semibold">ENTRY:</span>
-                      <span className="text-sky-300 font-bold">{formatCurrencyPrice(signal.entry_price, signal.currency)}</span>
-                    </div>
-                    <div className="bg-[#131722]/90 backdrop-blur-md border border-red-500/50 px-2.5 py-1 rounded-md text-[11px] font-mono shadow-md flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-red-400"></span>
-                      <span className="text-muted-foreground text-[10px] font-semibold">STOP:</span>
-                      <span className="text-red-300 font-bold">{formatCurrencyPrice(signal.stop_loss, signal.currency)}</span>
-                    </div>
-                    <div className="bg-[#131722]/90 backdrop-blur-md border border-emerald-500/50 px-2.5 py-1 rounded-md text-[11px] font-mono shadow-md flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                      <span className="text-muted-foreground text-[10px] font-semibold">TARGET:</span>
-                      <span className="text-emerald-300 font-bold">{formatCurrencyPrice(signal.target_price, signal.currency)}</span>
-                    </div>
+                {/* Level Summary HUD Bar */}
+                <div className="flex items-center gap-2 flex-wrap py-2 px-3 rounded-lg bg-muted/40 border border-border text-xs font-mono">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                    <span className="text-muted-foreground text-[10px] font-semibold">ENTRY:</span>
+                    <span className="text-sky-300 font-bold">{formatCurrencyPrice(signal.entry_price, signal.currency)}</span>
                   </div>
+                  <span className="text-muted-foreground/30">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                    <span className="text-muted-foreground text-[10px] font-semibold">STOP-LOSS:</span>
+                    <span className="text-red-300 font-bold">{formatCurrencyPrice(signal.stop_loss, signal.currency)}</span>
+                  </div>
+                  <span className="text-muted-foreground/30">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span className="text-muted-foreground text-[10px] font-semibold">TARGET:</span>
+                    <span className="text-emerald-300 font-bold">{formatCurrencyPrice(signal.target_price, signal.currency)}</span>
+                  </div>
+                  <span className="text-muted-foreground/30">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground text-[10px] font-semibold">R:R:</span>
+                    <span className="text-foreground font-bold">{signal.risk_reward_ratio}R</span>
+                  </div>
+                </div>
 
+                <div className="relative rounded-xl overflow-hidden">
                   {chartView === "tradingview" ? (
                     <TradingViewWidget
-                      key={signal.canonical_code}
+                      key={`${signal.canonical_code}-${timeframe}`}
                       symbol={signal.canonical_code}
                       height={460}
                       interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
@@ -315,9 +322,9 @@ export function SignalDetailPanel({ signal, onClose }: SignalDetailPanelProps) {
                 
                 <div className="text-[11px] text-muted-foreground bg-muted/30 rounded-lg px-3 py-2 flex items-center justify-between">
                   <span>
-                    {chartView === "tradingview"
-                      ? "⚡ Live Cloud Feed: Real-time exchange quotes. Switch to 'Signals & Levels' to view exact entry/stop overlays."
-                      : "🎯 Quant Model Replay: Plots completed bars with Entry, Stop-Loss, and Target price overlays."}
+                    {chartView === "levels"
+                      ? "🎯 Signals & Levels: Plots completed bars with algorithmic Entry, Stop-Loss, and Target price lines."
+                      : "⚡ Live TradingView Feed: Real-time live exchange candles. Switch to 'Signals & Levels' to view exact overlays."}
                   </span>
                   <span className="font-mono text-[10px]">As of {formatUtcTimestamp(signal.generated_at_utc)}</span>
                 </div>

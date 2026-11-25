@@ -258,7 +258,7 @@ def run_server() -> None:
     fake_redis = FakeRedis()
 
     from dotenv import load_dotenv
-    load_dotenv(ROOT / ".env")
+    load_dotenv(ROOT / ".env", override=True)
 
     import os
     env_provider_in = os.getenv("MARKET_DATA_PROVIDER_IN")

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo } from "react";
+import React, { useEffect, useRef, memo } from "react";
 
 interface TradingViewWidgetProps {
   symbol: string;
@@ -15,8 +15,10 @@ export const TradingViewWidget = memo(function TradingViewWidget({
   theme = "dark",
   height = 580,
   interval = "5",
-  timezone = "Asia/Kolkata",
+  timezone,
 }: TradingViewWidgetProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Normalize symbol for TradingView:
   // e.g. "RELIANCE" -> "NSE:RELIANCE", "NSE:TCS" -> "NSE:TCS", "AMD" -> "NASDAQ:AMD"
   const formattedSymbol = React.useMemo(() => {
@@ -59,29 +61,63 @@ export const TradingViewWidget = memo(function TradingViewWidget({
 
   const heightValue = typeof height === "number" ? `${height}px` : height;
 
-  const iframeSrc = React.useMemo(() => {
-    const params = new URLSearchParams({
-      frameElementId: "tradingview_advanced_chart",
+  const resolvedTimezone = React.useMemo(() => {
+    if (timezone) return timezone;
+    return formattedSymbol.startsWith("NSE:") || formattedSymbol.startsWith("BSE:")
+      ? "Asia/Kolkata"
+      : "America/New_York";
+  }, [timezone, formattedSymbol]);
+
+  const resolvedInterval = React.useMemo(() => {
+    if (interval === "1d" || interval === "D" || interval === "1D") return "D";
+    if (interval === "1w" || interval === "W") return "W";
+    if (interval === "15m" || interval === "15") return "15";
+    if (interval === "1m" || interval === "1") return "1";
+    return interval || "5";
+  }, [interval]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Reset container contents
+    container.innerHTML = "";
+
+    const widgetDiv = document.createElement("div");
+    widgetDiv.className = "tradingview-widget-container__widget";
+    widgetDiv.style.height = "100%";
+    widgetDiv.style.width = "100%";
+    container.appendChild(widgetDiv);
+
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.type = "text/javascript";
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      autosize: true,
       symbol: formattedSymbol,
-      interval: interval,
-      hidesidetoolbar: "0",
-      symboledit: "1",
-      saveimage: "1",
-      toolbarbg: theme === "dark" ? "131722" : "f1f3f6",
+      interval: resolvedInterval,
+      timezone: resolvedTimezone,
       theme: theme,
       style: "1",
-      timezone: timezone,
-      withdateranges: "1",
-      hideideas: "1",
-      studies: JSON.stringify([
-        "RSI@tv-basicstudies",
-        "MASimple@tv-basicstudies"
-      ]),
       locale: "en",
-      utm_source: "tradeintel.platform",
+      enable_publishing: false,
+      hide_top_toolbar: false,
+      allow_symbol_change: true,
+      save_image: true,
+      calendar: false,
+      studies: ["STD;RSI", "STD;SMA"],
+      support_host: "https://www.tradingview.com",
     });
-    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
-  }, [formattedSymbol, interval, theme, timezone]);
+
+    container.appendChild(script);
+
+    return () => {
+      if (container) {
+        container.innerHTML = "";
+      }
+    };
+  }, [formattedSymbol, resolvedInterval, theme, resolvedTimezone]);
 
   return (
     <div
@@ -92,18 +128,11 @@ export const TradingViewWidget = memo(function TradingViewWidget({
         width: "100%",
       }}
     >
-      <iframe
-        key={`${formattedSymbol}-${interval}-${theme}`}
-        title={`TradingView Advanced Chart - ${formattedSymbol}`}
-        src={iframeSrc}
-        className="w-full h-full block border-0"
-        style={{
-          width: "100%",
-          height: heightValue,
-          minHeight: heightValue,
-          border: "none",
-        }}
-        allowFullScreen
+      <div
+        ref={containerRef}
+        key={`${formattedSymbol}-${resolvedInterval}-${theme}`}
+        className="tradingview-widget-container"
+        style={{ height: "100%", width: "100%" }}
       />
     </div>
   );

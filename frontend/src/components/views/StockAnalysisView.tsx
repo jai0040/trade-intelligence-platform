@@ -198,7 +198,7 @@ export function StockAnalysisView({ marketScope }: StockAnalysisViewProps) {
 
           {chartEngine === "tradingview" ? (
             <TradingViewWidget
-              key={selected.canonical_code}
+              key={`${selected.canonical_code}-${timeframe}`}
               symbol={selected.canonical_code}
               height={580}
               interval={timeframe === "1d" ? "D" : timeframe === "15m" ? "15" : "5"}
